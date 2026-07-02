@@ -17,7 +17,7 @@ const InsightExtractionPrompt = ChatPromptTemplate.fromMessages([
       - decision: something explicitly waiting for a go/no-go, approval, or choice
       Rules:
       - Return only a JSON object matching this exact structure, no explanation, no markdown, no preamble:
-        { "updates": [{ "id": number, "type": "...", "content": "..." }], "new": [{ "type": "...", "content": "..." }] }
+        {{ "updates": [{{ "id": number, "type": "...", "content": "..." }}], "new": [{{ "type": "...", "content": "..." }}] }}
       - One object per distinct item — do not bundle unrelated items together.
       - content must be specific and self-contained — someone reading it with no message context should understand what it refers to.
       - When updating an existing item, fully REWRITE its content to reflect the new truth. Never append notes or suffixes like "(updated)" or "(resolved)" to the old content.
@@ -31,16 +31,14 @@ const InsightExtractionPrompt = ChatPromptTemplate.fromMessages([
         - An info that now requires action → task
         - An info that became time-critical → urgency
       - Ignore messages with no actionable, urgent, informational, or decision-relevant content (snack reminders, printer maintenance, etc.).
-      - If nothing in the messages updates or adds anything, return { "updates": [], "new": [] }.`,
+      - If nothing in the messages updates or adds anything, return {{ "updates": [], "new": [] }}.`,
   ],
   [
     'human',
     `Current items (history):
      {history}
-
     New messages:
     "{messages}"`,
   ],
 ])
-
 export default InsightExtractionPrompt
