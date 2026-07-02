@@ -1,5 +1,5 @@
 export interface TelegramConfig {
-  apiId: number
-  apiHash: string
-  chats: string[]
+    apiId: number;
+    apiHash: string;
+    chats: string[];
 }

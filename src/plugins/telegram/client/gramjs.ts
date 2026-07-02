@@ -1,13 +1,11 @@
 import { TelegramClient as GramJsClient } from "telegram";
 import { StringSession } from "telegram/sessions";
-import { NewMessage } from "telegram/events";
 import type { TelegramMessage } from "./interface";
 import { TelegramClient } from "./interface";
 
 export class GramJsTelegramClient extends TelegramClient {
     private client: GramJsClient | null = null;
     private session: StringSession;
-    private handlerCleanup: (() => void) | null = null;
 
     constructor(
         private apiId: number,
@@ -33,13 +31,6 @@ export class GramJsTelegramClient extends TelegramClient {
                 throw err;
             },
         });
-    }
-
-    async disconnect(): Promise<void> {
-        this.handlerCleanup?.();
-        this.handlerCleanup = null;
-        await this.client?.destroy();
-        this.client = null;
     }
 
     async *fetchMessages(
@@ -91,33 +82,11 @@ export class GramJsTelegramClient extends TelegramClient {
         }
     }
 
-    subscribe(cb: (msg: TelegramMessage) => void): () => void {
-        if (!this.client) throw new Error("Not connected");
+    subscribe(_: (msg: TelegramMessage) => void): () => void {
+        throw new Error("Not implemented yet");
+    }
 
-        const handler = (event: any) => {
-            const msg = event.message;
-            if (!msg || !msg.date) return;
-
-            const ts =
-                msg.date instanceof Date
-                    ? msg.date
-                    : new Date(msg.date * 1000);
-            cb({
-                id: msg.id,
-                chatId: msg.chatId?.toString() ?? "",
-                text: msg.text ?? msg.message ?? "",
-                date: ts,
-                replyTo: msg.replyTo?.replyToMsgId ?? null,
-                author: msg.sender?.username ?? null,
-                raw: JSON.parse(JSON.stringify(msg)),
-            });
-        };
-
-        this.client.addEventHandler(handler, new NewMessage({}));
-        const cleanup = () => {
-            this.client?.removeEventHandler(handler, new NewMessage({}));
-        };
-        this.handlerCleanup = cleanup;
-        return cleanup;
+    async disconnect(): Promise<void> {
+        throw new Error("Not implemented yet");
     }
 }
