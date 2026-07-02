@@ -1,4 +1,4 @@
-import type { EnvelopeWithPayload } from "./types";
+import type { EnvelopeWithPayload, ChatPayloadData } from "./types";
 
 export {
     type EnvelopeData,
@@ -8,7 +8,10 @@ export {
 
 export abstract class Credentials {}
 
-export abstract class BasePlugin<TCreds extends Credentials = Credentials> {
+export abstract class BasePlugin<
+    TCreds extends Credentials = Credentials,
+    TPayload = ChatPayloadData,
+> {
     abstract name: string;
 
     protected abortController: AbortController | null = null;
@@ -21,7 +24,7 @@ export abstract class BasePlugin<TCreds extends Credentials = Credentials> {
         start: Date,
         end: Date,
         limit: number,
-    ): AsyncIterable<EnvelopeWithPayload[]>;
+    ): AsyncIterable<EnvelopeWithPayload<TPayload>[]>;
     abstract startStream(): void;
     abstract stopStream(): void;
 }
