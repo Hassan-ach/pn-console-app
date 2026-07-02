@@ -1,7 +1,7 @@
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 
 // the {history} and {messages} syntax works as a place holder so these values can be injected later
-const insightExtractionPrompt = ChatPromptTemplate.fromMessages([
+const InsightExtractionPrompt = ChatPromptTemplate.fromMessages([
   [
     'system',
     `You are an assistant that manages a structured list of items for a user.
@@ -44,4 +44,4 @@ New messages:
   ],
 ])
 
-export default insightExtractionPrompt
+export default InsightExtractionPrompt
