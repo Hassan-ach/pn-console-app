@@ -1,5 +1,7 @@
 import type { EnvelopeWithPayload } from './types'
 
+export { type EnvelopeData, type ChatPayloadData, type EnvelopeWithPayload } from './types'
+
 export abstract class Credentials {}
 
 export abstract class BasePlugin<TCreds extends Credentials = Credentials> {
