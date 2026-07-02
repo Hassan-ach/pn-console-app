@@ -23,6 +23,6 @@ export abstract class BasePlugin<TPayload extends Payload = Payload> {
         end: Date,
         limit: number,
     ): AsyncIterable<EnvelopeWithPayload<TPayload>[]>;
-    abstract startStream(): void;
+    abstract startStream(): AsyncIterable<EnvelopeWithPayload<TPayload>[]>;
     abstract stopStream(): void;
 }
