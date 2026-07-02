@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 package-lock.json
+AGENTS.md
+docs/
+pnpm-lock.yaml
+requirements/
+tmp/
