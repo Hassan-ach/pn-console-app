@@ -19,7 +19,9 @@ export interface ChatPayloadData {
     raw_payload: Record<string, unknown>;
 }
 
-export interface EnvelopeWithPayload<TPayload = ChatPayloadData> {
+export type Payload = ChatPayloadData;
+
+export interface EnvelopeWithPayload<TPayload extends Payload = Payload> {
     envelope: EnvelopeData;
     payload: TPayload;
 }
