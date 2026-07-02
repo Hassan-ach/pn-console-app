@@ -17,3 +17,5 @@ export const InsightResultSchema = z.object({
   updatedInsights: z.array(UpdatedInsightSchema),
   newInsights: z.array(NewInsightSchema),
 })
+
+export type InsightExtractionResult = z.infer<typeof InsightResultSchema>
