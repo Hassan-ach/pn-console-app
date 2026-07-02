@@ -11,14 +11,26 @@ const llmWithStructuredOutput = new ChatOllama({
   baseUrl: import.meta.env.VITE_OLLAMA_BASE_URL,
 }).withStructuredOutput(InsightResultSchema)
 
-const chain = InsightExtractionPrompt.pipe(llmWithStructuredOutput)
+export const chain = InsightExtractionPrompt.pipe(
+  llmWithStructuredOutput
+).withRetry({
+  stopAfterAttempt: 3,
+})
 
 export default async function extractInsights(
   history: InputInsight[],
   messages: InputMessage[]
 ): Promise<InsightExtractionResult> {
-  return await chain.invoke({
-    history: JSON.stringify(history),
-    messages: JSON.stringify(messages),
-  })
+  let result: InsightExtractionResult
+  try {
+    result = await chain.invoke({
+      history: JSON.stringify(history),
+      messages: JSON.stringify(messages),
+    })
+  } catch (error) {
+    throw new Error(
+      ' insights extraction failed after 3 attempts: ${(error as Error).message} '
+    )
+  }
+  return result
 }
