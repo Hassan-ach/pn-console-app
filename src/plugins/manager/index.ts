@@ -88,15 +88,16 @@ export class PluginManager {
         }
     }
 
-    startPlugin(name: string): void {
+    startPlugin(name: string): AsyncIterable<EnvelopeWithPayload<Payload>[]> {
         const record = this.plugins.get(name);
         if (!record) throw new Error(`Plugin "${name}" not registered`);
         if (record.state !== PluginState.LOGGED_IN) {
             throw new Error(`Plugin "${name}" must be logged in first`);
         }
         try {
-            record.instance.startStream();
+            const stream = record.instance.startStream();
             record.state = PluginState.STREAMING;
+            return stream;
         } catch (error) {
             record.state = PluginState.ERROR;
             throw error;
