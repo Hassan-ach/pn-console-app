@@ -23,10 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
-package-lock.json
 AGENTS.md
 docs/
 pnpm-lock.yaml
+package-lock.json
 requirements/
 tmp/
 .env
