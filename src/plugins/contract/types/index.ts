@@ -1,14 +1,14 @@
 export interface EnvelopeData {
     source_plugin: string;
     source_id: string;
-    type: "chat";
+    type: "message";
     has_attachment: boolean;
     author_ref: string | null;
     occurred_at: string;
 }
 
-export interface ChatPayloadData {
-    type: "message" | "email";
+export interface MessagePayloadData {
+    type: "direct" | "email";
     content: string;
     group_id: string | null;
     reply_to: string | null;
@@ -19,7 +19,7 @@ export interface ChatPayloadData {
     raw_payload: Record<string, unknown>;
 }
 
-export type Payload = ChatPayloadData;
+export type Payload = MessagePayloadData;
 
 export interface EnvelopeWithPayload<TPayload extends Payload = Payload> {
     envelope: EnvelopeData;

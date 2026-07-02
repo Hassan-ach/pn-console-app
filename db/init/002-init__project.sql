@@ -4,7 +4,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TYPE envelope_type AS ENUM (
-    'chat'
+    'message'
 );
 
 CREATE TYPE ingestion_status AS ENUM (
@@ -13,15 +13,15 @@ CREATE TYPE ingestion_status AS ENUM (
     'failed'
 );
 
-CREATE TYPE chat_payload_type AS ENUM (
-    'message',
+CREATE TYPE message_payload_type AS ENUM (
+    'direct',
     'email'
 );
 
-CREATE TABLE IF NOT EXISTS chat_payload (
+CREATE TABLE IF NOT EXISTS message_payload (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    type chat_payload_type NOT NULL,
+    type message_payload_type NOT NULL,
 
     content TEXT NOT NULL,
 
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS envelope (
 
     CONSTRAINT fk_envelope_payload
         FOREIGN KEY (payload_ref)
-        REFERENCES chat_payload(id)
+        REFERENCES message_payload(id)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 );
