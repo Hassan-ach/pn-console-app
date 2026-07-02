@@ -1,4 +1,4 @@
-import type { EnvelopeData, ChatPayloadData } from '../../contract'
+import type { EnvelopeData, MessagePayloadData } from '../../contract'
 
 export interface EnvelopeInput extends EnvelopeData {
   id: string
@@ -9,6 +9,6 @@ export interface EnvelopeInput extends EnvelopeData {
   permissions: Record<string, unknown>
 }
 
-export interface ChatPayloadInput extends ChatPayloadData {
+export interface MessagePayloadInput extends MessagePayloadData {
   id: string
 }

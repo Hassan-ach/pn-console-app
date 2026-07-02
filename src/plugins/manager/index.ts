@@ -1,6 +1,6 @@
 import type { BasePlugin, Credentials, EnvelopeWithPayload, Payload } from "../contract";
 
-export { type EnvelopeInput, type ChatPayloadInput } from "./types";
+export { type EnvelopeInput, type MessagePayloadInput } from "./types";
 
 export enum PluginState {
     CREATED,
