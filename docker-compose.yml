@@ -16,6 +16,6 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pn_console}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 3
 volumes:
   postgres_data:

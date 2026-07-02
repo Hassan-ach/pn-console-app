@@ -1,10 +1,8 @@
 \c np_console_raw_db
 
 
--- extension
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- enums for envelope types
 CREATE TYPE envelope_type AS ENUM (
     'chat'
 );
@@ -20,7 +18,6 @@ CREATE TYPE chat_payload_type AS ENUM (
     'email'
 );
 
--- chat_payload
 CREATE TABLE IF NOT EXISTS chat_payload (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -43,7 +40,6 @@ CREATE TABLE IF NOT EXISTS chat_payload (
     raw_payload JSONB NOT NULL
 );
 
--- envelope
 CREATE TABLE IF NOT EXISTS envelope (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
