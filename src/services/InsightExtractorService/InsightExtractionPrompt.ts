@@ -1,6 +1,5 @@
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 
-// the {history} and {messages} syntax works as a place holder so these values can be injected later
 const InsightExtractionPrompt = ChatPromptTemplate.fromMessages([
   [
     'system',
@@ -37,10 +36,10 @@ const InsightExtractionPrompt = ChatPromptTemplate.fromMessages([
   [
     'human',
     `Current items (history):
-{history}
- 
-New messages:
-"{messages}"`,
+     {history}
+
+    New messages:
+    "{messages}"`,
   ],
 ])
 
