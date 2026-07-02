@@ -1,4 +1,9 @@
-import type { BasePlugin, Credentials, EnvelopeWithPayload, Payload } from "../contract";
+import type {
+    BasePlugin,
+    Credentials,
+    EnvelopeWithPayload,
+    Payload,
+} from "../contract";
 
 export { type EnvelopeInput, type MessagePayloadInput } from "./types";
 
@@ -149,8 +154,11 @@ export class PluginManager {
         try {
             record.instance.stopStream();
             await record.instance.logout();
-        } catch {
-            // ignore cleanup failures
+        } catch (error) {
+            console.warn(
+                `[PluginManager] Cleanup failed during unregister of "${name}":`,
+                error,
+            );
         }
         this.plugins.delete(name);
     }
