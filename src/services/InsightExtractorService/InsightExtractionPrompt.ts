@@ -67,4 +67,5 @@ const InsightExtractionPrompt = ChatPromptTemplate.fromMessages([
     {messages}`,
   ],
 ])
+
 export default InsightExtractionPrompt
