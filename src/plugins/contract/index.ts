@@ -2,7 +2,7 @@ import type { EnvelopeWithPayload, Payload } from "./types";
 
 export {
     type EnvelopeData,
-    type ChatPayloadData,
+    type MessagePayloadData,
     type Payload,
     type EnvelopeWithPayload,
 } from "./types";
