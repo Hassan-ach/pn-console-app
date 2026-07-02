@@ -1,4 +1,4 @@
-import type { BasePlugin, Credentials, EnvelopeWithPayload } from "../contract";
+import type { BasePlugin, Credentials, EnvelopeWithPayload, Payload } from "../contract";
 
 export { type EnvelopeInput, type ChatPayloadInput } from "./types";
 
@@ -11,21 +11,21 @@ export enum PluginState {
 }
 
 interface PluginRecord {
-    instance: BasePlugin;
+    instance: BasePlugin<Payload>;
     state: PluginState;
 }
 
 export class PluginManager {
     private plugins = new Map<string, PluginRecord>();
 
-    register(plugin: BasePlugin): void {
+    register(plugin: BasePlugin<Payload>): void {
         this.plugins.set(plugin.name, {
             instance: plugin,
             state: PluginState.CREATED,
         });
     }
 
-    get(name: string): BasePlugin | undefined {
+    get(name: string): BasePlugin<Payload> | undefined {
         return this.plugins.get(name)?.instance;
     }
 
@@ -46,6 +46,9 @@ export class PluginManager {
     ): Promise<void> {
         const record = this.plugins.get(name);
         if (!record) throw new Error(`Plugin "${name}" not registered`);
+        if (record.state !== PluginState.CREATED) {
+            throw new Error(`Plugin "${name}" already initialized`);
+        }
         try {
             await record.instance.initialize(config);
             record.state = PluginState.INITIALIZED;
@@ -58,6 +61,9 @@ export class PluginManager {
     async loginPlugin(name: string, credentials: Credentials): Promise<void> {
         const record = this.plugins.get(name);
         if (!record) throw new Error(`Plugin "${name}" not registered`);
+        if (record.state !== PluginState.INITIALIZED) {
+            throw new Error(`Plugin "${name}" must be initialized first`);
+        }
         try {
             await record.instance.login(credentials);
             record.state = PluginState.LOGGED_IN;
@@ -70,6 +76,9 @@ export class PluginManager {
     async logoutPlugin(name: string): Promise<void> {
         const record = this.plugins.get(name);
         if (!record) throw new Error(`Plugin "${name}" not registered`);
+        if (record.state === PluginState.CREATED) {
+            throw new Error(`Plugin "${name}" not logged in`);
+        }
         try {
             await record.instance.logout();
             record.state = PluginState.INITIALIZED;
@@ -82,6 +91,9 @@ export class PluginManager {
     startPlugin(name: string): void {
         const record = this.plugins.get(name);
         if (!record) throw new Error(`Plugin "${name}" not registered`);
+        if (record.state !== PluginState.LOGGED_IN) {
+            throw new Error(`Plugin "${name}" must be logged in first`);
+        }
         try {
             record.instance.startStream();
             record.state = PluginState.STREAMING;
@@ -94,6 +106,9 @@ export class PluginManager {
     stopPlugin(name: string): void {
         const record = this.plugins.get(name);
         if (!record) throw new Error(`Plugin "${name}" not registered`);
+        if (record.state !== PluginState.STREAMING) {
+            throw new Error(`Plugin "${name}" is not streaming`);
+        }
         try {
             record.instance.stopStream();
             record.state = PluginState.LOGGED_IN;
