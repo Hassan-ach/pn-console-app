@@ -1,6 +1,6 @@
 import z from 'zod'
 
-const InsightTypeSchema = z.enum(['task', 'urgency', 'info', 'decision'])
+const InsightTypeSchema = z.enum(['TASK', 'URGENCY', 'INFO', 'DECISION'])
 
 export const UpdatedInsightSchema = z.object({
   id: z.number(),
@@ -17,3 +17,5 @@ export const InsightResultSchema = z.object({
   updatedInsights: z.array(UpdatedInsightSchema),
   newInsights: z.array(NewInsightSchema),
 })
+
+export type InsightExtractionResult = z.infer<typeof InsightResultSchema>
