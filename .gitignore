@@ -24,6 +24,14 @@ dist-ssr
 *.sw?
 
 package-lock.json
+<<<<<<< HEAD
 
 # secret files
 .env
+=======
+AGENTS.md
+docs/
+pnpm-lock.yaml
+requirements/
+tmp/
+>>>>>>> origin/main
