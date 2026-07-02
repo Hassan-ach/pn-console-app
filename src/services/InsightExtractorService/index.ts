@@ -11,7 +11,9 @@ const llmWithStructuredOutput = new ChatOllama({
   baseUrl: import.meta.env.VITE_OLLAMA_BASE_URL,
 }).withStructuredOutput(InsightResultSchema)
 
-export const chain = InsightExtractionPrompt.pipe(llmWithStructuredOutput).withRetry({
+export const chain = InsightExtractionPrompt.pipe(
+  llmWithStructuredOutput
+).withRetry({
   stopAfterAttempt: 3,
 })
 

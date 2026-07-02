@@ -1,6 +1,6 @@
 export interface InputInsight {
   id: number
-  type: 'task' | 'urgency' | 'info' | 'decision'
+  type: 'TASK' | 'URGENCY' | 'INFO' | 'DECISION'
   content: string
 }
 

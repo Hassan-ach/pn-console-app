@@ -39,6 +39,7 @@ describe('InsightExtractionService', () => {
 
     await expect(extractInsights([], [])).rejects.toThrow()
   })
+
   it('should throw because of unstructred output', async () => {
     vi.spyOn(chain, 'invoke').mockRejectedValue({ newInsights: {} })
 
