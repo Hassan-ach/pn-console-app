@@ -12,10 +12,10 @@ const InsightExtractionPrompt = ChatPromptTemplate.fromMessages([
       Your job is to extract every actionable item, urgent situation, important piece of information, and required decision from the messages, then determine whether each one updates an existing insight or is a new insight.
       
       Classify every insight into one of these types:
-      - task: something that needs to be done or followed up on
-      - urgency: something requiring immediate attention (outages, security incidents, legal exposure, imminent deadlines)
-      - info: an important update or fact that requires no immediate action
-      - decision: something explicitly waiting for a go/no-go, approval, or choice
+      - TASK: something that needs to be done or followed up on
+      - URGENCY: something requiring immediate attention (outages, security incidents, legal exposure, imminent deadlines)
+      - INFO: an important update or fact that requires no immediate action
+      - DECISION: something explicitly waiting for a go/no-go, approval, or choice
       
       For each extracted insight:
       - If it clearly updates an existing insight, include it in "updatedInsights" with the original id.
@@ -28,13 +28,13 @@ const InsightExtractionPrompt = ChatPromptTemplate.fromMessages([
         "updatedInsights": [
           {{
             "id": number,
-            "type": "task" | "urgency" | "info" | "decision",
+            "type": "TASK" | "URGENCY" | "INFO" | "DECISION",
             "content": "..."
           }}
         ],
         "newInsights": [
           {{
-            "type": "task" | "urgency" | "info" | "decision",
+            "type": "TASK" | "URGENCY" | "INFO" | "DECISION",
             "content": "..."
           }}
         ]
