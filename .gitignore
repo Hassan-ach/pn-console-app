@@ -29,3 +29,4 @@ docs/
 pnpm-lock.yaml
 requirements/
 tmp/
+.env
