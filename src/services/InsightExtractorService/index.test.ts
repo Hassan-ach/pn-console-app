@@ -1,17 +1,17 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { InsightResultSchema } from './InsightSchema'
 import { InputInsight, InputMessage } from './types'
-import extractInsights from '.'
+import extractInsights, { chain } from '.'
 
 const sampleHistory: InputInsight[] = [
   {
     id: 1,
-    type: 'task',
+    type: 'TASK',
     content: 'Send the Q3 budget report to the finance team',
   },
   {
     id: 2,
-    type: 'urgency',
+    type: 'URGENCY',
     content: 'Production server CPU usage spiking above 90%',
   },
 ]
@@ -32,5 +32,17 @@ describe('InsightExtractionService', () => {
 
     const parsed = InsightResultSchema.safeParse(result)
     expect(parsed.success).toBe(true)
+  })
+
+  it('should throw because LLM service is unteachable', async () => {
+    vi.spyOn(chain, 'invoke').mockRejectedValue(new Error())
+
+    await expect(extractInsights([], [])).rejects.toThrow()
+  })
+
+  it('should throw because of unstructred output', async () => {
+    vi.spyOn(chain, 'invoke').mockRejectedValue({ newInsights: {} })
+
+    await expect(extractInsights([], [])).rejects.toThrow()
   })
 })
