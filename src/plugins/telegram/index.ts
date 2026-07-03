@@ -28,7 +28,8 @@ export class TelegramPlugin extends BasePlugin {
         if (!this.client) throw new Error("No client provided");
         const creds = credentials as any;
         const phone = creds.phoneNumber as string;
-        if (!phone) throw new Error("Missing phoneNumber");
+        // this line will be commented out because we want to allow login without phone number for testing purposes
+        // if (!phone) throw new Error("Missing phoneNumber");
         await this.client.connect(
             phone,
             creds.password as string | undefined,

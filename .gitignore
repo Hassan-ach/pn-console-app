@@ -30,3 +30,5 @@ package-lock.json
 requirements/
 tmp/
 .env
+.opencode/
+graphify-out/
