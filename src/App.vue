@@ -9,6 +9,8 @@ async function greet() {
   // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
   greetMsg.value = await invoke("greet", { name: name.value });
 }
+
+import DemoPage from "./demo/DemoPage.vue";
 </script>
 
 <template>
@@ -34,6 +36,8 @@ async function greet() {
     </form>
     <p>{{ greetMsg }}</p>
   </main>
+
+  <DemoPage />
 </template>
 
 <style scoped>
