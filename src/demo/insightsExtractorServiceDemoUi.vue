@@ -34,9 +34,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import extractInsights from '../../services/InsightExtractorService'
-import type { InsightExtractionResult } from '../../services/InsightExtractorService/InsightSchema'
-import type { InputInsight, InputMessage } from '../../services/InsightExtractorService/types'
+import extractInsights from '../services/InsightExtractorService'
+import type { InsightExtractionResult } from '../services/InsightExtractorService/InsightSchema'
+import type { InputInsight, InputMessage } from '../services/InsightExtractorService/types'
 
 const sampleHistory: InputInsight[] = [
   { id: 1, type: 'TASK', content: 'Send the Q3 budget report to the finance team' },
