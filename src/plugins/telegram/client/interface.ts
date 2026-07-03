@@ -5,6 +5,11 @@ export interface TelegramMessage {
     date: Date;
     replyTo: number | null;
     author: string | null;
+    hasAttachment: boolean;
+    reactions: Record<string, unknown>;
+    pinned: boolean;
+    editedDate: string | null;
+    entities: Record<string, unknown> | null;
     raw: Record<string, unknown>;
 }
 

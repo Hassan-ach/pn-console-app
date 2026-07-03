@@ -63,6 +63,7 @@ export class GramJsTelegramClient extends TelegramClient {
                         : new Date(msg.date * 1000);
                 if (ts < start || ts > end) continue;
 
+                const raw = JSON.parse(JSON.stringify(msg));
                 chunk.push({
                     id: msg.id,
                     chatId: chatId,
@@ -70,7 +71,12 @@ export class GramJsTelegramClient extends TelegramClient {
                     date: ts,
                     replyTo: msg.replyTo?.replyToMsgId ?? null,
                     author: msg.sender?.username ?? null,
-                    raw: JSON.parse(JSON.stringify(msg)),
+                    hasAttachment: !!(msg.media),
+                    reactions: raw.reactions ?? {},
+                    pinned: !!msg.pinned,
+                    editedDate: msg.editDate ?? null,
+                    entities: msg.entities ?? null,
+                    raw,
                 });
             }
 
