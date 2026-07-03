@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import insightsExtractorServiceDemoUi from "./demo/insightsExtractorServiceDemoUi.vue";
+import InsightsExtractorServiceDemoUi from "./demo/InsightsExtractorServiceDemoUi.vue";
 
 const greetMsg = ref("");
 const name = ref("");
@@ -34,8 +34,8 @@ async function greet() {
       <button type="submit">Greet</button>
     </form>
     <p>{{ greetMsg }}</p>
-      <insightsExtractorServiceDemoUi />
   </main>
+  <InsightsExtractorServiceDemoUi />
 </template>
 
 <style scoped>
