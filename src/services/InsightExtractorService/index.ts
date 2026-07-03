@@ -29,7 +29,7 @@ export default async function extractInsights(
     })
   } catch (error) {
     throw new Error(
-      ' insights extraction failed after 3 attempts: ${(error as Error).message} '
+      `insights extraction failed after 3 attempts: ${(error as Error).message}`
     )
   }
   return result
