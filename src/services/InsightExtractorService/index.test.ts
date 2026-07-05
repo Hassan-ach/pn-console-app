@@ -21,7 +21,7 @@ const sampleMessages: InputMessage[] = [
 ]
 
 describe('InsightExtractionService', () => {
-  it('should connect to Ollama', async () => {
+  it('should connect to llm', async () => {
     const response = await extractInsights([], [])
 
     expect(response).toBeTruthy()
