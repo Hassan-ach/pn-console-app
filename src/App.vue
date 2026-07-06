@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import InsightsExtractorServiceDemoUi from "./demo/InsightsExtractorServiceDemoUi.vue";
 
 const greetMsg = ref("");
 const name = ref("");
@@ -11,7 +10,6 @@ async function greet() {
   greetMsg.value = await invoke("greet", { name: name.value });
 }
 
-import DemoPage from "./demo/DemoPage.vue";
 </script>
 
 <template>
@@ -37,9 +35,6 @@ import DemoPage from "./demo/DemoPage.vue";
     </form>
     <p>{{ greetMsg }}</p>
   </main>
-  <InsightsExtractorServiceDemoUi />
-
-  <DemoPage />
 </template>
 
 <style scoped>
