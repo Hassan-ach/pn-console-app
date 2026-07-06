@@ -1,106 +1,102 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { getDatabase } from "../services/database/DataBaseClient";
-import { GrammersTelegramClient } from "../plugins/telegram/client/grammers";
-import { TelegramPlugin } from "../plugins/telegram";
-import { TelegramCredentials } from "../plugins/telegram/credentials";
-import { PluginManager } from "../plugins/manager";
-import { ingestFromPlugin } from "../services/Ingestion/IngestionService";
+import { ref } from 'vue';
+import { PluginManagerClient } from '../api/frontend-plugin-manager';
+
+const manager = new PluginManagerClient();
 
 const connected = ref(false);
 const loading = ref(false);
-const showOtp = ref(false);
-const otp = ref("");
-const chatId = ref("-1003913656430");
+const showCodeInput = ref(false);
+const showPasswordInput = ref(false);
+const code = ref('');
+const password = ref('');
+const chatId = ref('');
 const limit = ref(20);
-const msgCount = ref(0);
-const status = ref("Disconnected");
+const status = ref('Disconnected');
 const inserted = ref(0);
 
-let unlisten: UnlistenFn | null = null;
-let otpResolve: ((code: string) => void) | null = null;
-let manager: PluginManager | null = null;
-
-onMounted(async () => {
-  try {
-    unlisten = await listen("tg-code-needed", () => {
-      showOtp.value = true;
-      status.value = "Code required";
-    });
-  } catch {
-    status.value = "Event listen failed";
-  }
-  try {
-    const db = await getDatabase();
-    const rows = await db.select<{ count: number }[]>("SELECT COUNT(*) as count FROM envelope");
-    msgCount.value = rows[0]?.count ?? 0;
-  } catch {
-    msgCount.value = 0;
-  }
-});
-
-onUnmounted(() => {
-  unlisten?.();
-});
+let pendingId = '';
+let passwordPendingId = '';
 
 async function connect() {
   loading.value = true;
-  status.value = "Connecting...";
+  status.value = 'Connecting...';
   try {
-    const client = new GrammersTelegramClient();
-    const plugin = new TelegramPlugin(client);
-    plugin.setCodeProvider(() => new Promise<string>((resolve) => {
-      otpResolve = resolve;
-    }));
-    manager = new PluginManager();
-    manager.register(plugin);
-    await manager.initPlugin("telegram", { chats: [chatId.value || ""] });
-    await manager.loginPlugin("telegram", new TelegramCredentials("", undefined));
+    await manager.initialize('telegram', {
+      userId: 'user_1',
+      apiId: 33137605,
+      apiHash: 'c27e098210632ac9ad93f266bdad87de',
+      chats: [chatId.value || '-1003913656430'],
+    });
+
+    const result = await manager.login('telegram', {
+      phoneNumber: '+212619646104',
+    });
+
+    if (result.status === 'need_code') {
+      pendingId = result.pendingId ?? '';
+      showCodeInput.value = true;
+      status.value = 'Code sent — check Telegram';
+      loading.value = false;
+      return;
+    }
+
     connected.value = true;
-    status.value = "Connected";
+    status.value = 'Connected';
   } catch (e: any) {
-    status.value = `Error: ${e}`;
+    status.value = `Error: ${e.message ?? e}`;
   }
   loading.value = false;
 }
 
-function submitOtp() {
-  otpResolve?.(otp.value);
+async function submitCode() {
+  if (!pendingId || !code.value) return;
+  loading.value = true;
+  try {
+    const result = await manager.submitCode(pendingId, code.value);
+
+    if (result.status === 'need_password') {
+      passwordPendingId = result.pendingId ?? '';
+      showCodeInput.value = false;
+      showPasswordInput.value = true;
+      status.value = '2FA required — enter password';
+      loading.value = false;
+      return;
+    }
+
+    connected.value = true;
+    showCodeInput.value = false;
+    status.value = 'Connected';
+  } catch (e: any) {
+    status.value = `Error: ${e.message ?? e}`;
+  }
+  loading.value = false;
+}
+
+async function submitPassword() {
+  if (!passwordPendingId || !password.value) return;
+  loading.value = true;
+  try {
+    await manager.submitPassword(passwordPendingId, password.value);
+    connected.value = true;
+    showPasswordInput.value = false;
+    status.value = 'Connected';
+  } catch (e: any) {
+    status.value = `Error: ${e.message ?? e}`;
+  }
+  loading.value = false;
 }
 
 async function backfill() {
-  if (!manager) {
-    status.value = "Error: plugin manager not initialized";
-    loading.value = false;
-    return;
-  }
   loading.value = true;
   try {
-    const result = await ingestFromPlugin(
-      manager,
-      "telegram",
-      new Date(0),
-      new Date(),
-      limit.value,
-    );
+    const result = await manager.backfill('telegram', limit.value);
     inserted.value = result.inserted;
-    status.value = `Inserted ${result.inserted}, conflicts ${result.conflicts}`;
+    status.value = `Inserted ${result.inserted} messages`;
   } catch (e: any) {
-    status.value = `Error: ${e}`;
+    status.value = `Error: ${e.message ?? e}`;
   }
   loading.value = false;
-  await countMessages();
-}
-
-async function countMessages() {
-  try {
-    const db = await getDatabase();
-    const rows = await db.select<{ count: number }[]>("SELECT COUNT(*) as count FROM envelope");
-    msgCount.value = rows[0]?.count ?? 0;
-  } catch {
-    msgCount.value = 0;
-  }
 }
 </script>
 
@@ -110,14 +106,19 @@ async function countMessages() {
     <p>Status: <strong>{{ status }}</strong></p>
 
     <section>
-      <button @click="connect" :disabled="loading || connected">
-        {{ connected ? "Connected" : "Connect" }}
+      <button @click="connect" :disabled="loading || connected || showCodeInput">
+        {{ connected ? 'Connected' : 'Connect' }}
       </button>
     </section>
 
-    <section v-if="showOtp">
-      <input v-model="otp" placeholder="OTP code" />
-      <button @click="submitOtp">Submit</button>
+    <section v-if="showCodeInput">
+      <input v-model="code" placeholder="OTP code" />
+      <button @click="submitCode" :disabled="loading">Submit Code</button>
+    </section>
+
+    <section v-if="showPasswordInput">
+      <input v-model="password" type="password" placeholder="2FA password" />
+      <button @click="submitPassword" :disabled="loading">Submit Password</button>
     </section>
 
     <section v-if="connected">
@@ -125,13 +126,7 @@ async function countMessages() {
       <input v-model="chatId" placeholder="Chat ID" />
       <input v-model.number="limit" type="number" style="width: 70px" />
       <button @click="backfill" :disabled="loading">Backfill</button>
-      <p v-if="inserted">Last insert: {{ inserted }} messages</p>
-    </section>
-
-    <section>
-      <h3>Database</h3>
-      <p>Messages in DB: <strong>{{ msgCount }}</strong></p>
-      <button @click="countMessages">Refresh</button>
+      <p v-if="inserted">Inserted: {{ inserted }} messages</p>
     </section>
   </main>
 </template>
