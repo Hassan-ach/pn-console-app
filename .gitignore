@@ -32,3 +32,4 @@ tmp/
 .env
 .opencode/
 graphify-out/
+src-tauri/Cargo.lock
