@@ -2,7 +2,6 @@ export interface InputInsight {
   id: number
   type: 'TASK' | 'URGENCY' | 'INFO' | 'DECISION'
   content: string
-  refs: string[]
 }
 
 export interface InputMessage {
