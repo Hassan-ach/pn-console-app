@@ -1,15 +1,13 @@
-import { ChatOllama } from '@langchain/ollama'
 import { InsightExtractionResult, InsightResultSchema } from './InsightSchema'
 import InsightExtractionPrompt from './InsightExtractionPrompt'
 import { InputInsight, InputMessage } from './types'
+import createLLM from './LlmFactory'
 
-const llmWithStructuredOutput = new ChatOllama({
-  model: import.meta.env.VITE_OLLAMA_MODEL,
-  temperature: 0,
-  think: false,
-  streaming: false,
-  baseUrl: import.meta.env.VITE_OLLAMA_BASE_URL,
-}).withStructuredOutput(InsightResultSchema)
+async function getLlmWithStructuredOuptut() {
+  const llm = await createLLM()
+  return llm.withStructuredOutput(InsightResultSchema)
+}
+const llmWithStructuredOutput = await getLlmWithStructuredOuptut()
 
 export const chain = InsightExtractionPrompt.pipe(
   llmWithStructuredOutput
@@ -29,7 +27,7 @@ export default async function extractInsights(
     })
   } catch (error) {
     throw new Error(
-      ' insights extraction failed after 3 attempts: ${(error as Error).message} '
+      `insights extraction failed after 3 attempts: ${(error as Error).message}`
     )
   }
   return result
