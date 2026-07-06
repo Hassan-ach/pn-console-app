@@ -32,3 +32,6 @@ tmp/
 .env
 .opencode/
 graphify-out/
+postgres/
+src-tauri/Cargo.lock
+src-tauri/*.db
