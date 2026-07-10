@@ -42,9 +42,7 @@ const messages = ref<Message[]>([
 ]);
 const insights = ref<Insight[]>([]);
 const status = ref('');
-const generating = ref(false);
-const persisting = ref(false);
-const loadingAll = ref(false);
+const loading = ref(false);
 const allInsights = ref<Insight[]>([]);
 
 function addMessage() {
@@ -56,7 +54,7 @@ function removeMessage(index: number) {
 }
 
 async function generate() {
-  generating.value = true;
+  loading.value = true;
   status.value = 'Generating insights...';
   insights.value = [];
   try {
@@ -72,11 +70,11 @@ async function generate() {
   } catch (e: any) {
     status.value = `Error: ${e.message ?? e}`;
   }
-  generating.value = false;
+  loading.value = false;
 }
 
 async function persist() {
-  persisting.value = true;
+  loading.value = true;
   status.value = 'Persisting insights...';
   try {
     const result = await api.post<{ status: string; persisted: number }>(
@@ -90,11 +88,11 @@ async function persist() {
   } catch (e: any) {
     status.value = `Error: ${e.message ?? e}`;
   }
-  persisting.value = false;
+  loading.value = false;
 }
 
 async function loadAll() {
-  loadingAll.value = true;
+  loading.value = true;
   status.value = 'Loading all insights...';
   try {
     allInsights.value = await api.get<Insight[]>('/demo/insights');
@@ -102,7 +100,7 @@ async function loadAll() {
   } catch (e: any) {
     status.value = `Error: ${e.message ?? e}`;
   }
-  loadingAll.value = false;
+  loading.value = false;
 }
 </script>
 
@@ -129,8 +127,8 @@ async function loadAll() {
       </div>
       <button @click="addMessage">+ Add Message</button>
       <br />
-      <button @click="generate" :disabled="generating || !organizationId">
-        {{ generating ? 'Generating...' : 'Generate Insights' }}
+      <button @click="generate" :disabled="loading || !organizationId">
+        Generate Insights
       </button>
     </section>
 
@@ -142,14 +140,14 @@ async function loadAll() {
         <small>Owners: {{ insight.owners.join(', ') || 'none' }}</small><br />
         <small>Broadcasted: {{ insight.broadcasted }}</small>
       </div>
-      <button @click="persist" :disabled="persisting">
-        {{ persisting ? 'Persisting...' : 'Persist Insights' }}
+      <button @click="persist" :disabled="loading">
+        Persist Insights
       </button>
     </section>
 
     <section>
-      <button @click="loadAll" :disabled="loadingAll">
-        {{ loadingAll ? 'Loading...' : 'Load All Insights' }}
+      <button @click="loadAll" :disabled="loading">
+        Load All Insights
       </button>
       <div v-if="allInsights.length > 0" style="margin-top: 1rem;">
         <h3>All Insights ({{ allInsights.length }})</h3>
