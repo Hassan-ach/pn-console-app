@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue';
+import { ref } from 'vue';
 import { PluginManagerClient, type Insight } from '../api/frontend-plugin-manager';
 
 const manager = new PluginManagerClient();
@@ -17,17 +17,10 @@ const inserted = ref(0);
 
 const backfillComplete = ref(false);
 const envelopeCount = ref(0);
-const isExtracting = ref(false);
 const insights = ref<Insight[]>([]);
-const extractionError = ref('');
 
 let pendingId = '';
 let passwordPendingId = '';
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-
-onUnmounted(() => {
-  if (pollTimer) clearInterval(pollTimer);
-});
 
 async function connect() {
   loading.value = true;
@@ -102,7 +95,6 @@ async function backfill() {
   loading.value = true;
   backfillComplete.value = false;
   insights.value = [];
-  extractionError.value = '';
   try {
     const result = await manager.backfill('telegram', limit.value);
     inserted.value = result.inserted;
@@ -112,41 +104,22 @@ async function backfill() {
     envelopeCount.value = countRes.count;
 
     backfillComplete.value = true;
-    startPolling();
   } catch (e: any) {
     status.value = `Error: ${e.message ?? e}`;
   }
   loading.value = false;
 }
 
-function startPolling() {
-  isExtracting.value = true;
-  let attempts = 0;
-  const maxAttempts = 30;
-
-  pollTimer = setInterval(async () => {
-    attempts++;
-    try {
-      const result = await manager.getInsights();
-      if (result.length > 0) {
-        insights.value = result;
-        isExtracting.value = false;
-        if (pollTimer) clearInterval(pollTimer);
-        pollTimer = null;
-        status.value = `Extraction complete: ${result.length} insights`;
-      }
-    } catch {
-      // retry
-    }
-
-    if (attempts >= maxAttempts && pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-      isExtracting.value = false;
-      extractionError.value = 'Extraction timed out — check server logs';
-      status.value = 'Extraction timed out';
-    }
-  }, 2000);
+async function fetchInsights() {
+  loading.value = true;
+  try {
+    const result = await manager.getInsights();
+    insights.value = result;
+    status.value = result.length > 0 ? `${result.length} insights loaded` : 'No insights yet';
+  } catch (e: any) {
+    status.value = `Error: ${e.message ?? e}`;
+  }
+  loading.value = false;
 }
 
 function typeClass(type: string): string {
@@ -185,14 +158,7 @@ function typeClass(type: string): string {
         <p class="stat">Total envelopes: <strong>{{ envelopeCount }}</strong></p>
       </div>
 
-      <div v-if="isExtracting" class="extracting">
-        <span class="spinner"></span>
-        Running intelligence extraction...
-      </div>
-
-      <div v-if="extractionError" class="error">
-        {{ extractionError }}
-      </div>
+      <button @click="fetchInsights" :disabled="loading">Get Insights</button>
     </section>
 
     <section v-if="insights.length > 0">
@@ -221,12 +187,6 @@ input, button { margin: 0.25rem; padding: 0.4rem 0.8rem; }
 
 .results { margin-top: 0.75rem; }
 .stat { margin: 0.25rem 0; }
-
-.extracting { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem; color: #666; }
-.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ccc; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.error { margin-top: 0.75rem; color: #ef4444; }
 
 .insight-card { padding: 0.75rem; margin: 0.5rem 0; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa; }
 .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; color: #fff; }
