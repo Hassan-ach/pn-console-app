@@ -30,7 +30,7 @@ onMounted(() => {
 
     const page = hash.split("?")[0] || "#telegram";
     window.location.hash = page;
-    if (hash.includes("google_success=1")) {
+    if (hash.includes("google_success=1") || hash.includes("microsoft_success=1")) {
       sessionStorage.setItem("google_signup_success", "1");
     }
   }

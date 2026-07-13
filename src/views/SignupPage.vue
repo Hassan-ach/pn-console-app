@@ -157,6 +157,28 @@ function signInWithGoogle() {
   }, 300);
 }
 
+function signInWithMicrosoft() {
+  const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
+  const url = `${baseUrl}/api/auth/microsoft`;
+
+  const popup = window.open(url, "microsoft-auth", "width=600,height=700");
+  if (!popup) {
+    window.location.href = url;
+    return;
+  }
+
+  loading.value = true;
+  googlePoll = setInterval(() => {
+    const flag = sessionStorage.getItem("google_signup_success");
+    if (flag) {
+      sessionStorage.removeItem("google_signup_success");
+      if (googlePoll) clearInterval(googlePoll);
+      loading.value = false;
+      created.value = true;
+    }
+  }, 300);
+}
+
 async function handleSignup() {
   error.value = "";
   (Object.keys(touched) as (keyof typeof touched)[]).forEach(k => { touched[k] = true; });
@@ -219,6 +241,7 @@ async function handleSignup() {
           </button>
             <button
               type="button"
+              @click="signInWithMicrosoft"
               class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <span
