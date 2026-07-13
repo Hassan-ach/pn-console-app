@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import DemoPage from "./demo/DemoPage.vue";
+import InsightsDemoPage from "./demo/InsightsDemoPage.vue";
 import SignupPage from "./views/SignupPage.vue";
 
 const page = ref("telegram");
@@ -38,6 +39,17 @@ onUnmounted(() => {
     <span class="text-gray-300">|</span>
     <a
       href="#"
+      @click.prevent="navigate('insights')"
+      :class="
+        page === 'insights'
+          ? 'text-[#FF8C4B] font-semibold'
+          : 'text-gray-400 hover:text-gray-600'
+      "
+      >Insights Demo</a
+    >
+    <span class="text-gray-300">|</span>
+    <a
+      href="#"
       @click.prevent="navigate('signup')"
       :class="
         page === 'signup'
@@ -48,5 +60,6 @@ onUnmounted(() => {
     >
   </div>
   <DemoPage v-if="page === 'telegram'" />
+  <InsightsDemoPage v-else-if="page === 'insights'" />
   <SignupPage v-else-if="page === 'signup'" />
 </template>
