@@ -7,7 +7,8 @@ import SignupPage from "./views/SignupPage.vue";
 const page = ref("telegram");
 
 function onHashChange() {
-  page.value = window.location.hash.replace("#", "") || "telegram";
+  const raw = window.location.hash.replace("#", "");
+  page.value = raw.split("?")[0] || "telegram";
 }
 
 function navigate(view: string) {
@@ -16,6 +17,23 @@ function navigate(view: string) {
 
 onMounted(() => {
   onHashChange();
+  const hash = window.location.hash;
+  const match = hash.match(/access_token=([^&]+)/);
+  if (match) {
+    localStorage.setItem("access_token", match[1]);
+
+    if (window.opener && window.opener !== window) {
+      window.opener.sessionStorage.setItem("google_signup_success", "1");
+      window.close();
+      return;
+    }
+
+    const page = hash.split("?")[0] || "#telegram";
+    window.location.hash = page;
+    if (hash.includes("google_success=1")) {
+      sessionStorage.setItem("google_signup_success", "1");
+    }
+  }
   window.addEventListener("hashchange", onHashChange);
 });
 
