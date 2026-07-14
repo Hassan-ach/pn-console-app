@@ -179,6 +179,28 @@ function signInWithMicrosoft() {
   }, 300);
 }
 
+function signInWithSso() {
+  const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
+  const url = `${baseUrl}/api/auth/sso`;
+
+  const popup = window.open(url, "sso-auth", "width=600,height=700");
+  if (!popup) {
+    window.location.href = url;
+    return;
+  }
+
+  loading.value = true;
+  googlePoll = setInterval(() => {
+    const flag = sessionStorage.getItem("google_signup_success");
+    if (flag) {
+      sessionStorage.removeItem("google_signup_success");
+      if (googlePoll) clearInterval(googlePoll);
+      loading.value = false;
+      created.value = true;
+    }
+  }, 300);
+}
+
 async function handleSignup() {
   error.value = "";
   (Object.keys(touched) as (keyof typeof touched)[]).forEach(k => { touched[k] = true; });
@@ -360,6 +382,7 @@ async function handleSignup() {
           <div class="text-center mt-6">
             <a
               href="#"
+              @click.prevent="signInWithSso"
               class="text-[13px] text-[#FF8C4B] hover:text-[#F27D3A] font-medium cursor-pointer"
               >Sign up via company SSO &rarr;</a
             >
