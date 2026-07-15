@@ -8,6 +8,7 @@
     "opener:default",
     "core:window:allow-create",
     "core:window:allow-close",
+    "core:window:allow-destroy",
     "core:event:allow-emit",
     "core:event:allow-emit-to",
     "core:event:allow-listen",

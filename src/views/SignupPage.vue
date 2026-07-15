@@ -190,6 +190,10 @@ async function openOauthWindow(url: string, name: string) {
       loading.value = false;
       oauthTauriWindow = null;
     });
+    await oauthTauriWindow.onCloseRequested(() => {
+      loading.value = false;
+      oauthTauriWindow = null;
+    });
     loading.value = true;
   } else {
     oauthPopup = window.open(url, name, "width=600,height=700");
