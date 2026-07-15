@@ -89,6 +89,16 @@ onMounted(async () => {
       return;
     }
 
+    try {
+      const { emitTo } = await import("@tauri-apps/api/event");
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await emitTo("main", "oauth-result", { token: match[1], is_new: false });
+      await getCurrentWindow().close();
+      return;
+    } catch {
+      // Not running in Tauri — fall through to hash navigation
+    }
+
     window.location.hash = "dashboard";
     return;
   }

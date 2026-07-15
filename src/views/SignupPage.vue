@@ -123,13 +123,17 @@ function validate(): boolean {
 
 let googlePoll: ReturnType<typeof setInterval> | null = null;
 let oauthPopup: Window | null = null;
+let oauthTauriWindow: any = null;
 
 onUnmounted(() => {
   if (googlePoll) clearInterval(googlePoll);
 });
 
 function cancelOauth() {
-  if (oauthPopup) {
+  if (oauthTauriWindow) {
+    oauthTauriWindow.close();
+    oauthTauriWindow = null;
+  } else if (oauthPopup) {
     oauthPopup.close();
     oauthPopup = null;
   }
@@ -140,76 +144,74 @@ function cancelOauth() {
   loading.value = false;
 }
 
-function signInWithGoogle() {
-  const baseUrl = (
-    import.meta.env.VITE_API_URL ?? "http://localhost:3000/api"
-  ).replace("/api", "");
-  const url = `${baseUrl}/api/auth/google`;
+function pollOauthResult() {
+  if (oauthPopup && oauthPopup.closed) {
+    if (googlePoll) clearInterval(googlePoll);
+    loading.value = false;
+    if (!sessionStorage.getItem("access_token")) {
+      error.value = "Authentication was cancelled. Please try again.";
+    }
+  }
+}
 
-  oauthPopup = window.open(url, "google-auth", "width=600,height=700");
-  if (!oauthPopup) {
-    window.location.href = url;
-    return;
+function baseUrl(): string {
+  return (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace(
+    "/api",
+    "",
+  );
+}
+
+async function openOauthWindow(url: string, name: string) {
+  let isTauri = false;
+  try {
+    await import("@tauri-apps/api/event");
+    isTauri = true;
+  } catch {
+    // Not in Tauri
   }
 
-  loading.value = true;
-  googlePoll = setInterval(() => {
-    if (oauthPopup && oauthPopup.closed) {
-      if (googlePoll) clearInterval(googlePoll);
+  if (isTauri) {
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    oauthTauriWindow = new WebviewWindow(name, {
+      url,
+      title:
+        name === "sso-auth"
+          ? "Company SSO"
+          : name === "microsoft-auth"
+            ? "Microsoft Login"
+            : "Google Login",
+      width: 600,
+      height: 700,
+      center: true,
+    });
+    oauthTauriWindow.once("tauri://error", (e: any) => {
+      console.error("WebviewWindow error:", e);
+      error.value = "Failed to open authentication window. Please try again.";
       loading.value = false;
-      if (!sessionStorage.getItem("access_token")) {
-        error.value = "Authentication was cancelled. Please try again.";
-      }
+      oauthTauriWindow = null;
+    });
+    loading.value = true;
+  } else {
+    oauthPopup = window.open(url, name, "width=600,height=700");
+    if (!oauthPopup) {
+      window.location.href = url;
+      return;
     }
-  }, 300);
+    loading.value = true;
+    googlePoll = setInterval(pollOauthResult, 300);
+  }
+}
+
+function signInWithGoogle() {
+  openOauthWindow(`${baseUrl()}/api/auth/google`, "google-auth");
 }
 
 function signInWithMicrosoft() {
-  const baseUrl = (
-    import.meta.env.VITE_API_URL ?? "http://localhost:3000/api"
-  ).replace("/api", "");
-  const url = `${baseUrl}/api/auth/microsoft`;
-
-  oauthPopup = window.open(url, "microsoft-auth", "width=600,height=700");
-  if (!oauthPopup) {
-    window.location.href = url;
-    return;
-  }
-
-  loading.value = true;
-  googlePoll = setInterval(() => {
-    if (oauthPopup && oauthPopup.closed) {
-      if (googlePoll) clearInterval(googlePoll);
-      loading.value = false;
-      if (!sessionStorage.getItem("access_token")) {
-        error.value = "Authentication was cancelled. Please try again.";
-      }
-    }
-  }, 300);
+  openOauthWindow(`${baseUrl()}/api/auth/microsoft`, "microsoft-auth");
 }
 
 function signInWithSso() {
-  const baseUrl = (
-    import.meta.env.VITE_API_URL ?? "http://localhost:3000/api"
-  ).replace("/api", "");
-  const url = `${baseUrl}/api/auth/sso`;
-
-  oauthPopup = window.open(url, "sso-auth", "width=600,height=700");
-  if (!oauthPopup) {
-    window.location.href = url;
-    return;
-  }
-
-  loading.value = true;
-  googlePoll = setInterval(() => {
-    if (oauthPopup && oauthPopup.closed) {
-      if (googlePoll) clearInterval(googlePoll);
-      loading.value = false;
-      if (!sessionStorage.getItem("access_token")) {
-        error.value = "Authentication was cancelled. Please try again.";
-      }
-    }
-  }, 300);
+  openOauthWindow(`${baseUrl()}/api/auth/sso`, "sso-auth");
 }
 
 async function handleSignup() {
