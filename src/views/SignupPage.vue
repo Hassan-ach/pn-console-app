@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, inject, watch, onMounted, onUnmounted } from "vue";
+import { ref, reactive, onUnmounted } from "vue";
 import { authApi } from "../api/auth";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
 
 const firstName = ref("");
 const lastName = ref("");
@@ -13,24 +9,6 @@ const password = ref("");
 const loading = ref(false);
 const created = ref(false);
 const error = ref("");
-
-const oauthToken = inject<ReturnType<typeof ref<string | null>>>("oauthToken", ref(null));
-
-watch(oauthToken, (token) => {
-  if (token) {
-    loading.value = false;
-    created.value = true;
-  }
-}, { immediate: true });
-
-onMounted(() => {
-  const flag = sessionStorage.getItem("google_signup_success");
-  if (flag) {
-    sessionStorage.removeItem("google_signup_success");
-    created.value = true;
-    loading.value = false;
-  }
-});
 
 const fieldErrors = reactive({
   firstName: "",
@@ -145,72 +123,122 @@ function validate(): boolean {
 
 let googlePoll: ReturnType<typeof setInterval> | null = null;
 let oauthPopup: Window | null = null;
+let oauthTauriWindow: any = null;
 
 onUnmounted(() => {
   if (googlePoll) clearInterval(googlePoll);
 });
 
-function pollOauthResult() {
-  const flag = sessionStorage.getItem("google_signup_success");
-  if (flag) {
-    sessionStorage.removeItem("google_signup_success");
-    if (googlePoll) clearInterval(googlePoll);
-    loading.value = false;
-    created.value = true;
-    return;
+function cancelOauth() {
+  if (oauthTauriWindow) {
+    oauthTauriWindow.close();
+    oauthTauriWindow = null;
+  } else if (oauthPopup) {
+    oauthPopup.close();
+    oauthPopup = null;
   }
+  if (googlePoll) {
+    clearInterval(googlePoll);
+    googlePoll = null;
+  }
+  loading.value = false;
+}
+
+function pollOauthResult() {
   if (oauthPopup && oauthPopup.closed) {
     if (googlePoll) clearInterval(googlePoll);
     loading.value = false;
+    if (!sessionStorage.getItem("access_token")) {
+      error.value = "Authentication was cancelled. Please try again.";
+    }
   }
 }
 
-async function signInWithOauth(baseAuthUrl: string, windowName: string, _provider: string) {
-  loading.value = true;
+function baseUrl(): string {
+  return (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace(
+    "/api",
+    "",
+  );
+}
 
-  if (isTauri()) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("open_oauth_window", { url: `${baseAuthUrl}?mode=desktop` });
+async function openOauthWindow(url: string, name: string) {
+  let isTauri = false;
+  try {
+    await import("@tauri-apps/api/event");
+    isTauri = true;
+  } catch {
+    // Not in Tauri
+  }
+
+  if (isTauri) {
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    oauthTauriWindow = new WebviewWindow(name, {
+      url,
+      title:
+        name === "sso-auth"
+          ? "Company SSO"
+          : name === "microsoft-auth"
+            ? "Microsoft Login"
+            : "Google Login",
+      width: 600,
+      height: 700,
+      center: true,
+    });
+    oauthTauriWindow.once("tauri://error", (e: any) => {
+      console.error("WebviewWindow error:", e);
+      error.value = "Failed to open authentication window. Please try again.";
+      loading.value = false;
+      oauthTauriWindow = null;
+    });
+    await oauthTauriWindow.onCloseRequested(() => {
+      loading.value = false;
+      oauthTauriWindow = null;
+    });
+    loading.value = true;
   } else {
-    oauthPopup = window.open(baseAuthUrl, windowName, "width=600,height=700");
+    oauthPopup = window.open(url, name, "width=600,height=700");
     if (!oauthPopup) {
-      window.location.href = baseAuthUrl;
+      window.location.href = url;
       return;
     }
+    loading.value = true;
     googlePoll = setInterval(pollOauthResult, 300);
   }
 }
 
 function signInWithGoogle() {
-  const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
-  signInWithOauth(`${baseUrl}/api/auth/google`, "google-auth", "Google");
+  openOauthWindow(`${baseUrl()}/api/auth/google`, "google-auth");
 }
 
 function signInWithMicrosoft() {
-  const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
-  signInWithOauth(`${baseUrl}/api/auth/microsoft`, "microsoft-auth", "Microsoft");
+  openOauthWindow(`${baseUrl()}/api/auth/microsoft`, "microsoft-auth");
 }
 
 function signInWithSso() {
-  const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
-  signInWithOauth(`${baseUrl}/api/auth/sso`, "sso-auth", "SSO");
+  openOauthWindow(`${baseUrl()}/api/auth/sso`, "sso-auth");
 }
 
 async function handleSignup() {
   error.value = "";
-  (Object.keys(touched) as (keyof typeof touched)[]).forEach(k => { touched[k] = true; });
+  (Object.keys(touched) as (keyof typeof touched)[]).forEach((k) => {
+    touched[k] = true;
+  });
   if (!validate()) return;
 
   loading.value = true;
 
   try {
-    await authApi.signup({
-      firstName: firstName.value,
-      lastName: lastName.value,
-      email: email.value,
+    const res = await authApi.signup({
+      firstName: firstName.value.trim(),
+      lastName: lastName.value.trim(),
+      email: email.value.toLowerCase().trim(),
       password: password.value,
     });
+    sessionStorage.setItem("access_token", res.access_token);
     created.value = true;
+    setTimeout(() => {
+      window.location.hash = "#dashboard";
+    }, 1500);
   } catch (e: any) {
     error.value = e.message ?? "Something went wrong. Please try again.";
   } finally {
@@ -248,14 +276,14 @@ async function handleSignup() {
           </p>
 
           <div class="flex gap-4 mt-8">
-          <button
-            type="button"
-            @click="signInWithGoogle"
-            class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <span class="text-red-500 font-bold text-sm leading-none">G</span>
-            <span>Google</span>
-          </button>
+            <button
+              type="button"
+              @click="signInWithGoogle"
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <span class="text-red-500 font-bold text-sm leading-none">G</span>
+              <span>Google</span>
+            </button>
             <button
               type="button"
               @click="signInWithMicrosoft"
@@ -324,46 +352,40 @@ async function handleSignup() {
             <div>
               <label
                 for="email"
-                  class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide"
-                  >Company Email <span class="text-red-500">*</span></label
-                >
-                <input
-                  id="email"
-                  v-model="email"
-                  @input="validateField('email')"
-                  required
-                  type="email"
-                  placeholder="sarah@company.com"
-                  class="w-full px-4 py-3 border border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:border-[#FF8C4B] focus:ring-2 focus:ring-[#FF8C4B]/20 shadow-sm transition-all bg-white"
-                />
-                <p
-                  v-if="fieldErrors.email"
-                  class="text-red-500 text-xs mt-1"
-                >
-                  {{ fieldErrors.email }}
-                </p>
+                class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide"
+                >Company Email <span class="text-red-500">*</span></label
+              >
+              <input
+                id="email"
+                v-model="email"
+                @input="validateField('email')"
+                required
+                type="email"
+                placeholder="sarah@company.com"
+                class="w-full px-4 py-3 border border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:border-[#FF8C4B] focus:ring-2 focus:ring-[#FF8C4B]/20 shadow-sm transition-all bg-white"
+              />
+              <p v-if="fieldErrors.email" class="text-red-500 text-xs mt-1">
+                {{ fieldErrors.email }}
+              </p>
             </div>
             <div>
               <label
                 for="password"
-                  class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide"
-                  >Password <span class="text-red-500">*</span></label
-                >
-                <input
-                  id="password"
-                  v-model="password"
-                  @input="validateField('password')"
-                  required
-                  type="password"
-                  placeholder="Create a strong password"
-                  class="w-full px-4 py-3 border border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:border-[#FF8C4B] focus:ring-2 focus:ring-[#FF8C4B]/20 shadow-sm transition-all bg-white"
-                />
-                <p
-                  v-if="fieldErrors.password"
-                  class="text-red-500 text-xs mt-1"
-                >
-                  {{ fieldErrors.password }}
-                </p>
+                class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide"
+                >Password <span class="text-red-500">*</span></label
+              >
+              <input
+                id="password"
+                v-model="password"
+                @input="validateField('password')"
+                required
+                type="password"
+                placeholder="Create a strong password"
+                class="w-full px-4 py-3 border border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:border-[#FF8C4B] focus:ring-2 focus:ring-[#FF8C4B]/20 shadow-sm transition-all bg-white"
+              />
+              <p v-if="fieldErrors.password" class="text-red-500 text-xs mt-1">
+                {{ fieldErrors.password }}
+              </p>
             </div>
             <button
               type="submit"
@@ -385,7 +407,9 @@ async function handleSignup() {
 
           <p class="text-center text-[13px] text-gray-500 mt-6">
             Already have an account?
-            <a href="#" class="text-[#FF8C4B] hover:text-[#F27D3A] font-bold cursor-pointer"
+            <a
+              href="#login"
+              class="text-[#FF8C4B] hover:text-[#F27D3A] font-bold cursor-pointer"
               >Log in</a
             >
           </p>
@@ -399,23 +423,52 @@ async function handleSignup() {
         </template>
 
         <div v-else class="text-center py-12">
-          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          <div
+            class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto"
+          >
+            <svg
+              class="w-8 h-8 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
-          <h2 class="text-2xl font-bold text-gray-900 mt-6">Account created!</h2>
-          <p class="text-gray-500 mt-2">Welcome aboard. Your account is ready.</p>
-          <a
-            href="#telegram"
-            class="inline-block mt-8 py-3 px-6 bg-[#FF8C4B] hover:bg-[#F27D3A] text-white font-semibold rounded-lg shadow-[0_4px_14px_0_rgba(255,140,75,0.39)] transition-all cursor-pointer"
-          >
-            Go to Telegram Demo
-          </a>
+          <h2 class="text-2xl font-bold text-gray-900 mt-6">
+            Account created!
+          </h2>
+          <p class="text-gray-500 mt-2">
+            Welcome aboard. Your account is ready.
+          </p>
+          <p class="text-gray-400 text-sm mt-4">Redirecting to dashboard...</p>
         </div>
       </div>
     </section>
+
+    <div
+      v-if="loading && !created"
+      class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm"
+    >
+      <div
+        class="bg-white rounded-xl p-8 shadow-2xl flex flex-col items-center gap-4 min-w-[300px]"
+      >
+        <div
+          class="w-8 h-8 border-4 border-[#FF8C4B] border-t-transparent rounded-full animate-spin"
+        />
+        <p class="text-gray-700 font-medium">Connecting...</p>
+        <button
+          @click="cancelOauth"
+          class="mt-2 px-6 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   </main>
-
-
 </template>
