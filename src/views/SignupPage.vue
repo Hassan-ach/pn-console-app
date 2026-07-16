@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from "vue";
+import { ref, reactive, inject, watch, onMounted, onUnmounted } from "vue";
 import { authApi } from "../api/auth";
+
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
 
 const firstName = ref("");
 const lastName = ref("");
@@ -10,11 +14,21 @@ const loading = ref(false);
 const created = ref(false);
 const error = ref("");
 
+const oauthToken = inject<ReturnType<typeof ref<string | null>>>("oauthToken", ref(null));
+
+watch(oauthToken, (token) => {
+  if (token) {
+    loading.value = false;
+    created.value = true;
+  }
+}, { immediate: true });
+
 onMounted(() => {
   const flag = sessionStorage.getItem("google_signup_success");
   if (flag) {
     sessionStorage.removeItem("google_signup_success");
     created.value = true;
+    loading.value = false;
   }
 });
 
@@ -130,75 +144,56 @@ function validate(): boolean {
 }
 
 let googlePoll: ReturnType<typeof setInterval> | null = null;
+let oauthPopup: Window | null = null;
 
 onUnmounted(() => {
   if (googlePoll) clearInterval(googlePoll);
 });
 
-function signInWithGoogle() {
-  const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
-  const url = `${baseUrl}/api/auth/google`;
-
-  const popup = window.open(url, "google-auth", "width=600,height=700");
-  if (!popup) {
-    window.location.href = url;
+function pollOauthResult() {
+  const flag = sessionStorage.getItem("google_signup_success");
+  if (flag) {
+    sessionStorage.removeItem("google_signup_success");
+    if (googlePoll) clearInterval(googlePoll);
+    loading.value = false;
+    created.value = true;
     return;
   }
+  if (oauthPopup && oauthPopup.closed) {
+    if (googlePoll) clearInterval(googlePoll);
+    loading.value = false;
+  }
+}
 
+async function signInWithOauth(baseAuthUrl: string, windowName: string, _provider: string) {
   loading.value = true;
-  googlePoll = setInterval(() => {
-    const flag = sessionStorage.getItem("google_signup_success");
-    if (flag) {
-      sessionStorage.removeItem("google_signup_success");
-      if (googlePoll) clearInterval(googlePoll);
-      loading.value = false;
-      created.value = true;
+
+  if (isTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("open_oauth_window", { url: `${baseAuthUrl}?mode=desktop` });
+  } else {
+    oauthPopup = window.open(baseAuthUrl, windowName, "width=600,height=700");
+    if (!oauthPopup) {
+      window.location.href = baseAuthUrl;
+      return;
     }
-  }, 300);
+    googlePoll = setInterval(pollOauthResult, 300);
+  }
+}
+
+function signInWithGoogle() {
+  const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
+  signInWithOauth(`${baseUrl}/api/auth/google`, "google-auth", "Google");
 }
 
 function signInWithMicrosoft() {
   const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
-  const url = `${baseUrl}/api/auth/microsoft`;
-
-  const popup = window.open(url, "microsoft-auth", "width=600,height=700");
-  if (!popup) {
-    window.location.href = url;
-    return;
-  }
-
-  loading.value = true;
-  googlePoll = setInterval(() => {
-    const flag = sessionStorage.getItem("google_signup_success");
-    if (flag) {
-      sessionStorage.removeItem("google_signup_success");
-      if (googlePoll) clearInterval(googlePoll);
-      loading.value = false;
-      created.value = true;
-    }
-  }, 300);
+  signInWithOauth(`${baseUrl}/api/auth/microsoft`, "microsoft-auth", "Microsoft");
 }
 
 function signInWithSso() {
   const baseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:3000/api").replace("/api", "");
-  const url = `${baseUrl}/api/auth/sso`;
-
-  const popup = window.open(url, "sso-auth", "width=600,height=700");
-  if (!popup) {
-    window.location.href = url;
-    return;
-  }
-
-  loading.value = true;
-  googlePoll = setInterval(() => {
-    const flag = sessionStorage.getItem("google_signup_success");
-    if (flag) {
-      sessionStorage.removeItem("google_signup_success");
-      if (googlePoll) clearInterval(googlePoll);
-      loading.value = false;
-      created.value = true;
-    }
-  }, 300);
+  signInWithOauth(`${baseUrl}/api/auth/sso`, "sso-auth", "SSO");
 }
 
 async function handleSignup() {
@@ -421,4 +416,6 @@ async function handleSignup() {
       </div>
     </section>
   </main>
+
+
 </template>

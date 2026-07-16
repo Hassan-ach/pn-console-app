@@ -12,7 +12,18 @@ async function request<T>(
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`API error ${res.status}: ${text}`);
+    let errorMessage = `API error ${res.status}: ${text}`;
+    try {
+      const json = JSON.parse(text);
+      if (json && typeof json.message === 'string') {
+        errorMessage = json.message;
+      } else if (json && Array.isArray(json.message) && json.message.length > 0) {
+        errorMessage = json.message[0]; // NestJS validation errors can be an array
+      }
+    } catch {
+      // Ignore JSON parse errors and use the default message
+    }
+    throw new Error(errorMessage);
   }
   return res.json();
 }
