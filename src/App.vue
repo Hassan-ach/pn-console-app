@@ -12,7 +12,8 @@ const signupKey = ref(0);
 
 const AUTH_PAGES = new Set(["dashboard", "telegram", "insights", "settings"]);
 
-const oauthTokenMatch = window.location.hash.match(/access_token=([^&]+)/);
+const rawHash = window.location.hash;
+const oauthTokenMatch = rawHash.match(/access_token=([^&]+)/);
 if (oauthTokenMatch) {
   sessionStorage.setItem("access_token", oauthTokenMatch[1]);
 }
@@ -76,8 +77,7 @@ function onOauthMessage(event: MessageEvent) {
 const showNavBar = computed(() => AUTH_PAGES.has(page.value));
 
 onMounted(async () => {
-  const hash = window.location.hash;
-  const match = hash.match(/access_token=([^&]+)/);
+  const match = rawHash.match(/access_token=([^&]+)/);
   if (match) {
     sessionStorage.setItem("access_token", match[1]);
 
