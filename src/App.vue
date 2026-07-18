@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import DemoPage from "./demo/DemoPage.vue";
 import InsightsDemoPage from "./demo/InsightsDemoPage.vue";
+import InsightsRouterOutlet from "./demo/InsightsRouterOutlet.vue";
 import SignupPage from "./views/SignupPage.vue";
 import LoginPage from "./views/LoginPage.vue";
 import DashboardPage from "./views/DashboardPage.vue";
@@ -9,7 +10,7 @@ import NavBar from "./components/NavBar.vue";
 
 const signupKey = ref(0);
 
-const AUTH_PAGES = new Set(["dashboard", "telegram", "insights"]);
+const AUTH_PAGES = new Set(["dashboard", "telegram", "insights", "insightsDemo"]);
 
 const oauthTokenMatch = window.location.hash.match(/access_token=([^&]+)/);
 if (oauthTokenMatch) {
@@ -136,5 +137,6 @@ onUnmounted(() => {
   <SignupPage v-else-if="page === 'signup'" :key="'signup-' + signupKey" />
   <DashboardPage v-else-if="page === 'dashboard'" />
   <DemoPage v-else-if="page === 'telegram'" />
-  <InsightsDemoPage v-else-if="page === 'insights'" />
+  <InsightsDemoPage v-else-if="page === 'insightsDemo'" />
+  <InsightsRouterOutlet v-else-if="page === 'insights'" />
 </template>
