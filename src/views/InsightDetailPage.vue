@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { insightsApi, type InsightDetail, type InsightSummary, type InsightType } from '../api/insights-api';
+import { insightsApi, type InsightDetail, type InsightSummary, type InsightType, type SourceEnvelope } from '../api/insights-api';
+import SourceEnvelopeCard from '../components/SourceEnvelopeCard.vue';
 
 const TYPE_LABELS: Record<InsightType, string> = {
   TASK: 'Task',
@@ -24,14 +25,12 @@ const detail = ref<InsightDetail | null>(null);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 
-// Version history
 const showVersions = ref(false);
 const versions = ref<InsightSummary[]>([]);
 const versionsLoaded = ref(false);
 const versionsLoading = ref(false);
 const versionsError = ref<string | null>(null);
 
-// Everything except the version currently shown in the main card above.
 const otherVersions = computed(() =>
   versions.value.filter((v) => v.version !== detail.value?.version),
 );
@@ -41,12 +40,40 @@ const versionDetails = ref<Record<string, InsightDetail>>({});
 const versionDetailLoadingId = ref<string | null>(null);
 const versionDetailErrors = ref<Record<string, string>>({});
 
+const showReferences = ref(false);
+const sourceEnvelopes = ref<SourceEnvelope[]>([]);
+const sourceEnvelopesLoading = ref(false);
+const sourceEnvelopesError = ref<string | null>(null);
+
+async function loadSourceEnvelopes() {
+  if (!detail.value || !detail.value.latestVersionId){
+  console.log(detail.value)
+return;
+  } 
+  sourceEnvelopesLoading.value = true;
+  sourceEnvelopesError.value = null;
+  try {
+    const result = await insightsApi.getSourceEnvelopes(
+      route.params.id as string,
+      detail.value.latestVersionId,
+    );
+    sourceEnvelopes.value = Array.isArray(result) ? result : [];
+  } catch (err) {
+    sourceEnvelopesError.value = 'An error occurred while fetching references.';
+  } finally {
+    sourceEnvelopesLoading.value = false;
+  }
+}
+
 async function loadDetail(id: string) {
   isLoading.value = true;
   error.value = null;
   detail.value = null;
   try {
     detail.value = await insightsApi.get(id);
+    if (detail.value.envolopsRef.length) {
+      loadSourceEnvelopes();
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Could not load this insight.';
   } finally {
@@ -100,7 +127,6 @@ watch(
   (id) => {
     if (typeof id !== 'string') return;
     loadDetail(id);
-    // Reset version history state for the new insight.
     showVersions.value = false;
     versions.value = [];
     versionsLoaded.value = false;
@@ -108,6 +134,9 @@ watch(
     expandedVersionId.value = null;
     versionDetails.value = {};
     versionDetailErrors.value = {};
+    showReferences.value = false;
+    sourceEnvelopes.value = [];
+    sourceEnvelopesError.value = null;
   },
 );
 </script>
@@ -167,27 +196,52 @@ watch(
           <dt class="text-stone-500">Version</dt>
           <dd class="text-right font-medium">{{ detail.version }}</dd>
         </div>
-        <div class="flex justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">Organization</dt>
-          <dd class="text-right font-medium">{{ detail.organizationId ?? '—' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">Group</dt>
-          <dd class="text-right font-medium">{{ detail.groupId ?? '—' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">Channel</dt>
-          <dd class="text-right font-medium">{{ detail.channelId ?? '—' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">Topic</dt>
-          <dd class="text-right font-medium">{{ detail.topicId ?? '—' }}</dd>
-        </div>
-        <div v-if="detail.envolopsRef.length" class="flex justify-between gap-3 text-[13px]">
+        <div v-if="detail.envolopsRef.length" class="flex items-center justify-between gap-3 text-[13px]">
           <dt class="text-stone-500">References</dt>
-          <dd class="text-right font-medium">{{ detail.envolopsRef.join(', ') }}</dd>
+          <dd>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 font-medium text-orange-600 hover:text-orange-700"
+              @click="showReferences = !showReferences"
+            >
+              {{ detail.envolopsRef.length }} source{{ detail.envolopsRef.length > 1 ? 's' : '' }}
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 16 16"
+                fill="none"
+                class="transition-transform"
+                :class="showReferences ? 'rotate-180' : ''"
+                aria-hidden="true"
+              >
+                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </dd>
         </div>
       </dl>
+
+      <div v-if="showReferences && detail.envolopsRef.length" class="mt-3 flex flex-col gap-2 border-t border-stone-100 pt-4">
+        <div v-if="sourceEnvelopesLoading" class="py-3 text-center text-sm text-stone-500">
+          Loading source messages…
+        </div>
+        <div v-else-if="sourceEnvelopesError" class="rounded-xl border border-dashed border-stone-300 bg-white px-4 py-6 text-center text-sm">
+          <p class="mb-2.5 text-red-700">{{ sourceEnvelopesError }}</p>
+          <button
+            type="button"
+            class="rounded-lg bg-orange-50 px-3.5 py-1.5 text-[13px] font-semibold text-orange-700 hover:brightness-95"
+            @click="loadSourceEnvelopes"
+          >
+            Try again
+          </button>
+        </div>
+        <template v-else>
+          <SourceEnvelopeCard v-for="env in sourceEnvelopes" :key="env.envolopId" :envelope="env" />
+          <p v-if="sourceEnvelopes.length === 0" class="py-3 text-center text-sm text-stone-500">
+            No refs for this insight.
+          </p>
+        </template>
+      </div>
     </article>
 
     <div v-if="detail" class="mt-4">
