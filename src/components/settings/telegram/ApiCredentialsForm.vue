@@ -25,7 +25,6 @@ onMounted(() => {
     } catch {}
   }
 });
-
 async function onSubmit() {
   error.value = '';
 

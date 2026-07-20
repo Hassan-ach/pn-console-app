@@ -4,7 +4,6 @@ import { ref } from 'vue';
 defineProps<{
   busy?: boolean;
 }>();
-
 const emit = defineEmits<{
   submit: [password: string];
 }>();
