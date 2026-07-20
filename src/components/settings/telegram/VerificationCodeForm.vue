@@ -3,6 +3,7 @@ import { ref, onUnmounted } from 'vue';
 
 const props = defineProps<{
   phone: string;
+  busy?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -11,7 +12,6 @@ const emit = defineEmits<{
 }>();
 
 const codeDigits = ref(['', '', '', '', '']);
-const loading = ref(false);
 const error = ref('');
 const inputs = ref<(HTMLInputElement | null)[]>([]);
 
@@ -43,19 +43,14 @@ function onResend() {
   startCountdown();
 }
 
-async function onSubmit() {
+function onSubmit() {
   error.value = '';
   const fullCode = codeDigits.value.join('');
   if (fullCode.length !== 5 || !/^\d{5}$/.test(fullCode)) {
     error.value = 'Enter the 5-digit code';
     return;
   }
-  loading.value = true;
-  try {
-    emit('submit', fullCode);
-  } finally {
-    loading.value = false;
-  }
+  emit('submit', fullCode);
 }
 
 function onDigitInput(index: number) {
@@ -116,10 +111,10 @@ function setInputRef(el: HTMLInputElement | null, index: number) {
 
       <button
         @click="onSubmit"
-        :disabled="loading || codeDigits.some((d) => d === '')"
+        :disabled="busy || codeDigits.some((d) => d === '')"
         class="px-4 py-2 text-sm text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
-        {{ loading ? 'Verifying...' : 'Verify' }}
+        {{ busy ? 'Verifying...' : 'Verify' }}
       </button>
     </div>
   </div>

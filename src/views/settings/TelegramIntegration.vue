@@ -26,6 +26,15 @@ const savedCredentials = ref<Credentials | null>(null);
 const existingChats = ref<string[]>([]);
 
 const error = ref('');
+const success = ref('');
+const submitting = ref(false);
+let successTimer: ReturnType<typeof setTimeout> | null = null;
+
+function setSuccess(msg: string) {
+  success.value = msg;
+  if (successTimer) clearTimeout(successTimer);
+  successTimer = setTimeout(() => { success.value = ''; }, 5000);
+}
 
 onMounted(async () => {
   await loadConfig();
@@ -51,16 +60,20 @@ function startConnect() {
 
 async function onCredentialsSubmit(apiId: number, apiHash: string, phone: string) {
   savedCredentials.value = { apiId, apiHash };
+  submitting.value = true;
   try {
     await auth.sendCode(apiId, apiHash, phone);
     wizardStep.value = 'code';
     error.value = '';
   } catch (err: any) {
     error.value = auth.state.value.error ?? err.message ?? 'Failed to send code';
+  } finally {
+    submitting.value = false;
   }
 }
 
 async function onCodeSubmit(code: string) {
+  submitting.value = true;
   try {
     await auth.submitCode(code);
     if (auth.state.value.step === 'awaiting-password') {
@@ -71,33 +84,46 @@ async function onCodeSubmit(code: string) {
     error.value = '';
   } catch (err: any) {
     error.value = auth.state.value.error ?? err.message ?? 'Invalid code';
+  } finally {
+    submitting.value = false;
   }
 }
 
 async function onPasswordSubmit(password: string) {
+  submitting.value = true;
   try {
     await auth.submitPassword(password);
     await onAuthComplete();
     error.value = '';
   } catch (err: any) {
     error.value = auth.state.value.error ?? err.message ?? 'Invalid password';
+  } finally {
+    submitting.value = false;
   }
 }
 
 async function onAuthComplete() {
   if (!savedCredentials.value) return;
   const chatList = existingChats.value.length > 0 ? existingChats.value : [];
-  await client.createConfig('telegram', {
+  const configPayload = {
     apiId: savedCredentials.value.apiId,
     apiHash: savedCredentials.value.apiHash,
     sessionString: auth.state.value.sessionString,
     phone: auth.state.value.phone,
     chats: chatList,
-  } as any);
+  } as any;
+
+  const msg = await client.createConfig('telegram', configPayload);
+  setSuccess(msg);
 
   localStorage.setItem(
     'telegram_config',
-    JSON.stringify({ phone: auth.state.value.phone, chats: chatList }),
+    JSON.stringify({
+      apiId: savedCredentials.value.apiId,
+      apiHash: savedCredentials.value.apiHash,
+      phone: auth.state.value.phone,
+      chats: chatList,
+    }),
   );
 
   wizardStep.value = 'done';
@@ -105,23 +131,32 @@ async function onAuthComplete() {
 }
 
 async function onDisconnect() {
-  await client.logout('telegram');
+  try {
+    const msg = await client.logout('telegram');
+    setSuccess(msg);
+  } catch (err: any) {
+    error.value = err.message ?? 'Failed to disconnect';
+  }
   auth.reset();
   savedCredentials.value = null;
   wizardStep.value = 'idle';
-  pluginConfig.value = null;
   existingChats.value = [];
-  localStorage.removeItem('telegram_config');
+  await loadConfig();
 }
 
 async function onSaveChats(chats: string[]) {
-  await client.updateConfig('telegram', { chats } as any);
-  existingChats.value = chats;
-  const stored = localStorage.getItem('telegram_config');
-  if (stored) {
-    const parsed = JSON.parse(stored);
-    parsed.chats = chats;
-    localStorage.setItem('telegram_config', JSON.stringify(parsed));
+  try {
+    const msg = await client.updateConfig('telegram', { chats } as any);
+    setSuccess(msg);
+    existingChats.value = chats;
+    const stored = localStorage.getItem('telegram_config');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      parsed.chats = chats;
+      localStorage.setItem('telegram_config', JSON.stringify(parsed));
+    }
+  } catch (err: any) {
+    error.value = err.message ?? 'Failed to save chats';
   }
 }
 
@@ -157,6 +192,14 @@ const isConnected = () =>
       </div>
 
       <div
+        v-if="success"
+        class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center justify-between"
+      >
+        <span>{{ success }}</span>
+        <button @click="success = ''" class="text-green-400 hover:text-green-600 ml-2">&times;</button>
+      </div>
+
+      <div
         v-if="error"
         class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between"
       >
@@ -165,19 +208,20 @@ const isConnected = () =>
       </div>
 
       <div v-if="wizardStep === 'credentials'" class="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-        <ApiCredentialsForm @submit="onCredentialsSubmit" />
+        <ApiCredentialsForm :busy="submitting" @submit="onCredentialsSubmit" />
       </div>
 
       <div v-if="wizardStep === 'code'" class="bg-white border border-gray-200 rounded-lg p-5 mb-6">
         <VerificationCodeForm
           :phone="auth.state.value.phone"
+          :busy="submitting"
           @submit="onCodeSubmit"
           @resend="onResendCode"
         />
       </div>
 
       <div v-if="wizardStep === 'password'" class="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-        <PasswordForm @submit="onPasswordSubmit" />
+        <PasswordForm :busy="submitting" @submit="onPasswordSubmit" />
       </div>
 
       <div v-if="wizardStep === 'done' || (isConnected() && wizardStep === 'idle')" class="bg-white border border-gray-200 rounded-lg p-5">
