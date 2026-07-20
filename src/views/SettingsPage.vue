@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { authApi } from "../api/auth";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import IntegrationsCard from "../components/settings/IntegrationsCard.vue";
 
 const showLogoutDialog = ref(false);
 const loggingOut = ref(false);
@@ -37,6 +38,8 @@ async function confirmLogout() {
           Log Out
         </button>
       </div>
+
+      <IntegrationsCard class="mt-6" />
     </div>
 
     <ConfirmDialog

@@ -138,7 +138,7 @@ const isConnected = () =>
   <main class="flex-1 p-8 bg-[#FCFAF8] min-h-screen">
     <div class="max-w-2xl mx-auto">
       <nav class="text-sm text-gray-400 mb-6">
-        <a href="#dashboard" class="hover:text-gray-600">Settings</a>
+        <a href="#settings" class="hover:text-gray-600">Settings</a>
         <span class="mx-2">/</span>
         <span class="text-gray-700">Integrations</span>
         <span class="mx-2">/</span>
