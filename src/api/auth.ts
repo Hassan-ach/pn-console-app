@@ -26,6 +26,7 @@ export interface LoginPayload {
 
 export interface LoginResponse {
   access_token: string;
+  is_new_user: boolean;
   user: {
     id: string;
     firstName: string;
@@ -35,8 +36,13 @@ export interface LoginResponse {
   };
 }
 
+export interface LogoutResponse {
+  message: string;
+}
+
 export const authApi = {
   signup: (data: SignupPayload) =>
     api.post<SignupResponse>("/auth/signup", data),
   login: (data: LoginPayload) => api.post<LoginResponse>("/auth/login", data),
+  logout: () => api.post<LogoutResponse>("/auth/logout"),
 };

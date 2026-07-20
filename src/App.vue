@@ -5,13 +5,15 @@ import InsightsDemoPage from "./demo/InsightsDemoPage.vue";
 import SignupPage from "./views/SignupPage.vue";
 import LoginPage from "./views/LoginPage.vue";
 import DashboardPage from "./views/DashboardPage.vue";
+import SettingsPage from "./views/SettingsPage.vue";
 import NavBar from "./components/NavBar.vue";
 
 const signupKey = ref(0);
 
-const AUTH_PAGES = new Set(["dashboard", "telegram", "insights"]);
+const AUTH_PAGES = new Set(["dashboard", "telegram", "insights", "settings"]);
 
-const oauthTokenMatch = window.location.hash.match(/access_token=([^&]+)/);
+const rawHash = window.location.hash;
+const oauthTokenMatch = rawHash.match(/access_token=([^&]+)/);
 if (oauthTokenMatch) {
   sessionStorage.setItem("access_token", oauthTokenMatch[1]);
 }
@@ -75,8 +77,7 @@ function onOauthMessage(event: MessageEvent) {
 const showNavBar = computed(() => AUTH_PAGES.has(page.value));
 
 onMounted(async () => {
-  const hash = window.location.hash;
-  const match = hash.match(/access_token=([^&]+)/);
+  const match = rawHash.match(/access_token=([^&]+)/);
   if (match) {
     sessionStorage.setItem("access_token", match[1]);
 
@@ -135,6 +136,7 @@ onUnmounted(() => {
   <LoginPage v-if="page === 'login'" />
   <SignupPage v-else-if="page === 'signup'" :key="'signup-' + signupKey" />
   <DashboardPage v-else-if="page === 'dashboard'" />
+  <SettingsPage v-else-if="page === 'settings'" />
   <DemoPage v-else-if="page === 'telegram'" />
   <InsightsDemoPage v-else-if="page === 'insights'" />
 </template>

@@ -17,7 +17,7 @@ async function request<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 && token) {
       sessionStorage.removeItem("access_token");
       window.location.hash = "#login";
       throw new Error("Session expired. Please log in again.");
