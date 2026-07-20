@@ -59,29 +59,19 @@ onUnmounted(() => {
           >Telegram Demo</a
         >
         <span class="text-gray-300">|</span>
-        <a
-          href="#insights"
-          @click.prevent="navigate('insights')"
-          :class="
-            currentPage === 'insights'
-              ? 'text-[#FF8C4B] font-semibold'
-              : 'text-gray-400 hover:text-gray-600'
-          "
-          class="px-3 py-1.5 text-sm transition-colors"
-          >Insights Demo</a
-        >
-        <span class="text-gray-300">|</span>
-        <a
-          href="#settings"
-          @click.prevent="navigate('settings')"
-          :class="
-            currentPage === 'settings'
-              ? 'text-[#FF8C4B] font-semibold'
-              : 'text-gray-400 hover:text-gray-600'
-          "
-          class="px-3 py-1.5 text-sm transition-colors"
-          >Settings</a
-        >
+
+<a
+  href="#settings"
+  @click.prevent="navigate('settings')"
+  :class="
+    currentPage === 'settings'
+      ? 'text-[#FF8C4B] font-semibold'
+      : 'text-gray-400 hover:text-gray-600'
+  "
+  class="px-3 py-1.5 text-sm transition-colors"
+>
+  Settings
+</a>
       </div>
     </div>
     <div class="flex items-center gap-4">

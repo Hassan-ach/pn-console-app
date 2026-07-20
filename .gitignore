@@ -23,8 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-AGENTS.md
-docs/
 pnpm-lock.yaml
 package-lock.json
 requirements/
@@ -35,3 +33,10 @@ graphify-out/
 postgres/
 src-tauri/Cargo.lock
 src-tauri/*.db
+reports/
+token-optimizer
+AGENTS.md
+user_stories/
+docs/
+.pi/
+public/telegram-bundle.js
