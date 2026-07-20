@@ -3,3 +3,5 @@ allowBuilds:
   es5-ext: true
   esbuild: false
   utf-8-validate: true
+overrides:
+  buffer: ^6.0.3
