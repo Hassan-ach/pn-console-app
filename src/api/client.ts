@@ -21,7 +21,6 @@ async function request<T>(
             sessionStorage.removeItem("access_token");
             window.location.hash = "#login";
             throw new Error("Session expired. Please log in again.");
-            throw new Error("Session expired. Please log in again.");
         }
         const text = await res.text();
         let errorMessage = `Request failed (${res.status})`;
