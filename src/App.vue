@@ -5,11 +5,12 @@ import InsightsDemoPage from "./demo/InsightsDemoPage.vue";
 import SignupPage from "./views/SignupPage.vue";
 import LoginPage from "./views/LoginPage.vue";
 import DashboardPage from "./views/DashboardPage.vue";
+import TelegramIntegration from "./views/settings/TelegramIntegration.vue";
 import NavBar from "./components/NavBar.vue";
 
 const signupKey = ref(0);
 
-const AUTH_PAGES = new Set(["dashboard", "telegram", "insights"]);
+const AUTH_PAGES = new Set(["dashboard", "telegram", "insights", "settings-telegram"]);
 
 const oauthTokenMatch = window.location.hash.match(/access_token=([^&]+)/);
 if (oauthTokenMatch) {
@@ -137,4 +138,5 @@ onUnmounted(() => {
   <DashboardPage v-else-if="page === 'dashboard'" />
   <DemoPage v-else-if="page === 'telegram'" />
   <InsightsDemoPage v-else-if="page === 'insights'" />
+  <TelegramIntegration v-else-if="page === 'settings-telegram'" />
 </template>

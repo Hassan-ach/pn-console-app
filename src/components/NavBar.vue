@@ -70,6 +70,18 @@ onUnmounted(() => {
           class="px-3 py-1.5 text-sm transition-colors"
           >Insights Demo</a
         >
+        <span class="text-gray-300">|</span>
+        <a
+          href="#settings-telegram"
+          @click.prevent="navigate('settings-telegram')"
+          :class="
+            currentPage === 'settings-telegram'
+              ? 'text-[#FF8C4B] font-semibold'
+              : 'text-gray-400 hover:text-gray-600'
+          "
+          class="px-3 py-1.5 text-sm transition-colors"
+          >Telegram Settings</a
+        >
       </div>
     </div>
     <div class="flex items-center gap-4">
