@@ -1,26 +1,31 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+export interface ChatEntry {
+  name: string;
+  id: string;
+}
+
 const props = defineProps<{
   phone: string;
-  chats?: string[];
+  chats?: ChatEntry[];
   resolveChat?: (identifier: string) => Promise<{ title: string; id: string } | null>;
 }>();
 
 const emit = defineEmits<{
-  save: [chats: string[]];
+  save: [chats: ChatEntry[]];
   disconnect: [];
 }>();
 
 const chatInput = ref('');
-const chatList = ref<string[]>(props.chats ?? []);
+const chatList = ref<ChatEntry[]>(props.chats ?? []);
 const saving = ref(false);
 const resolving = ref(false);
 
 async function addChat() {
   const val = chatInput.value.trim();
   if (!val) return;
-  if (chatList.value.includes(val)) return;
+  if (chatList.value.some(c => c.id === val)) return;
 
   if (props.resolveChat) {
     resolving.value = true;
@@ -30,10 +35,9 @@ async function addChat() {
       alert('Could not resolve chat. Check the username/ID and try again.');
       return;
     }
-    const label = entity.title !== val ? `${entity.title} (${val})` : val;
-    chatList.value.push(label);
+    chatList.value.push({ name: entity.title, id: val });
   } else {
-    chatList.value.push(val);
+    chatList.value.push({ name: val, id: val });
   }
   chatInput.value = '';
 }
@@ -89,10 +93,11 @@ async function onSave() {
       <div v-if="chatList.length > 0" class="mt-3 flex flex-wrap gap-2">
         <span
           v-for="(chat, i) in chatList"
-          :key="i"
+          :key="chat.id"
           class="inline-flex items-center gap-1 px-2.5 py-1 text-sm bg-[#FF8C4B]/10 text-[#FF8C4B] rounded-full"
+          :title="chat.id"
         >
-          {{ chat }}
+          {{ chat.name }}
           <button
             @click="removeChat(i)"
             class="text-[#FF8C4B] hover:text-red-600 text-lg leading-none"

@@ -7,7 +7,7 @@ import ConfirmDialog from '../../components/ConfirmDialog.vue';
 import ApiCredentialsForm from '../../components/settings/telegram/ApiCredentialsForm.vue';
 import VerificationCodeForm from '../../components/settings/telegram/VerificationCodeForm.vue';
 import PasswordForm from '../../components/settings/telegram/PasswordForm.vue';
-import ChatConfigForm from '../../components/settings/telegram/ChatConfigForm.vue';
+import ChatConfigForm, { type ChatEntry } from '../../components/settings/telegram/ChatConfigForm.vue';
 
 const client = new PluginManagerClient();
 const auth = useTelegramAuth();
@@ -24,7 +24,7 @@ interface Credentials {
 }
 const savedCredentials = ref<Credentials | null>(null);
 
-const existingChats = ref<string[]>([]);
+const existingChats = ref<ChatEntry[]>([]);
 const connectedSince = ref<number | null>(null);
 
 const error = ref('');
@@ -88,7 +88,10 @@ async function loadConfig() {
   try {
     const config = await client.getConfig('telegram');
     pluginConfig.value = config;
-    existingChats.value = (config as any).chats ?? [];
+    const raw = (config as any).chats ?? [];
+    existingChats.value = Array.isArray(raw)
+      ? raw.map((c: any) => typeof c === 'string' ? { name: c, id: c } : { name: c.name ?? c.id, id: c.id ?? c })
+      : [];
     const state = await client.getState('telegram');
     hasSession.value = state.hasSession ?? false;
   } catch {
@@ -157,7 +160,7 @@ async function onAuthComplete() {
     apiHash: savedCredentials.value.apiHash,
     sessionString: auth.state.value.sessionString,
     phone: auth.state.value.phone,
-    chats: chatList,
+    chats: chatList.map(c => ({ name: c.name, id: c.id })),
   } as any;
 
   const result = await client.login('telegram', configPayload);
@@ -203,7 +206,7 @@ async function confirmDisconnect() {
   await loadConfig();
 }
 
-async function onSaveChats(chats: string[]) {
+async function onSaveChats(chats: ChatEntry[]) {
   try {
     const msg = await client.updateConfig('telegram', { chats } as any);
     setSuccess(msg);
@@ -211,7 +214,7 @@ async function onSaveChats(chats: string[]) {
     const stored = localStorage.getItem('telegram_config');
     if (stored) {
       const parsed = JSON.parse(stored);
-      parsed.chats = chats;
+      parsed.chats = chats.map(c => ({ name: c.name, id: c.id }));
       localStorage.setItem('telegram_config', JSON.stringify(parsed));
     }
   } catch (err: any) {
