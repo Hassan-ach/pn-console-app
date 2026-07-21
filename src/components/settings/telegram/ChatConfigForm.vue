@@ -21,6 +21,7 @@ const chatInput = ref('');
 const chatList = ref<ChatEntry[]>(props.chats ?? []);
 const saving = ref(false);
 const resolving = ref(false);
+const error = ref('');
 
 async function addChat() {
   const val = chatInput.value.trim();
@@ -32,9 +33,10 @@ async function addChat() {
     const entity = await props.resolveChat(val);
     resolving.value = false;
     if (!entity) {
-      alert('Could not resolve chat. Check the username/ID and try again.');
+      error.value = 'Could not resolve chat. Check the username/ID and try again.';
       return;
     }
+    error.value = '';
     chatList.value.push({ name: entity.title, id: val });
   } else {
     chatList.value.push({ name: val, id: val });
@@ -73,7 +75,8 @@ async function onSave() {
       <p class="text-xs text-gray-400 mb-2">
         Enter @usernames or numeric chat IDs. Press Enter or click Add.
       </p>
-      <div class="flex gap-2">
+      <div v-if="error" class="text-xs text-red-600 mb-1">{{ error }}</div>
+    <div class="flex gap-2">
         <input
           v-model="chatInput"
           type="text"

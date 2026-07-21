@@ -7,6 +7,8 @@ const ERROR_MAP: Record<string, string> = {
   FLOOD_WAIT: 'Too many requests. Please wait a moment and try again.',
   CHAT_ID_INVALID: 'The chat ID or username could not be found.',
   USERNAME_NOT_OCCUPIED: 'This username does not exist.',
+  PASSWORD_HASH_INVALID: 'Incorrect password. Please try again.',
+  'Could not find the input entity': 'Could not find this chat or user. Check the ID/username and try again.',
 };
 
 export function userError(raw: string, fallback: string): string {

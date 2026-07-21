@@ -63,6 +63,8 @@ function userError(raw: string, fallback: string): string {
     'FLOOD_WAIT': 'Too many requests. Please wait a moment and try again.',
     'CHAT_ID_INVALID': 'The chat ID or username could not be found.',
     'USERNAME_NOT_OCCUPIED': 'This username does not exist.',
+    'PASSWORD_HASH_INVALID': 'Incorrect password. Please try again.',
+    'Could not find the input entity': 'Could not find this chat or user. Check the ID/username and try again.',
   };
   const key = Object.keys(map).find(k => raw.includes(k));
   return key ? map[key] : fallback;
@@ -146,7 +148,7 @@ async function onPasswordSubmit(password: string) {
     await onAuthComplete();
     error.value = '';
   } catch (err: any) {
-    error.value = auth.state.value.error ?? err.message ?? 'Invalid password';
+    error.value = userError(auth.state.value.error ?? err.message ?? '', 'Invalid password');
   } finally {
     submitting.value = false;
   }
