@@ -1,5 +1,11 @@
 import { api } from "./client";
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data?: T;
+}
+
 export interface PluginInfo {
     name: string;
     state: string;
@@ -21,42 +27,74 @@ export interface Insight {
     createdAt?: string;
 }
 
+function ensureSuccess<T>(res: ApiResponse<T>): void {
+  if (!res.success) throw new Error(res.message);
+}
+
 export class PluginManagerClient {
     async list(): Promise<PluginInfo[]> {
-        return api.get<PluginInfo[]>("/plugins");
+        const res = await api.get<ApiResponse<PluginInfo[]>>("/plugins");
+        ensureSuccess(res);
+        return res.data ?? [];
     }
 
     async getState(name: string): Promise<PluginInfo> {
-        return api.get<PluginInfo>(`/plugins/${name}`);
+        const res = await api.get<ApiResponse<PluginInfo>>(`/plugins/${name}`);
+        ensureSuccess(res);
+        return res.data!;
     }
 
-    async logout(name: string): Promise<void> {
-        await api.post(`/plugins/${name}/logout`);
+    async logout(name: string): Promise<string> {
+        const res = await api.post<ApiResponse<never>>(
+            `/plugins/${name}/logout`,
+        );
+        ensureSuccess(res);
+        return res.message;
     }
 
     async createConfig(
         name: string,
         config: Record<string, unknown>,
-    ): Promise<void> {
-        await api.post(`/plugins/${name}/config`, { config });
+    ): Promise<string> {
+        const res = await api.post<ApiResponse<never>>(
+            `/plugins/${name}/config`,
+            { config },
+        );
+        ensureSuccess(res);
+        return res.message;
     }
 
     async getConfig(name: string): Promise<Record<string, unknown>> {
-        return api.get<Record<string, unknown>>(`/plugins/${name}/config`);
+        const res = await api.get<ApiResponse<Record<string, unknown>>>(
+            `/plugins/${name}/config`,
+        );
+        ensureSuccess(res);
+        return res.data ?? {};
     }
 
     async updateConfig(
         name: string,
         config: Record<string, unknown>,
-    ): Promise<void> {
-        await api.patch(`/plugins/${name}/config`, { config });
+    ): Promise<string> {
+        const res = await api.patch<ApiResponse<never>>(
+            `/plugins/${name}/config`,
+            { config },
+        );
+        ensureSuccess(res);
+        return res.message;
     }
 
     async backfill(plugin: string, limit: number): Promise<BulkInsertResult> {
-        return api.post<BulkInsertResult>("/ingestion/backfill", {
-            plugin,
-            limit,
-        });
+        const res = await api.post<ApiResponse<BulkInsertResult>>(
+            "/ingestion/backfill",
+            { plugin, limit },
+        );
+        if (!res.success) {
+            const errors = (res.data as any)?.errors;
+            const detail = errors?.length ? errors[0].message : res.message;
+            throw new Error(detail);
+        }
+        return res.data!;
     }
 
     async getEnvelopeCount(sourcePlugin?: string): Promise<{ count: number }> {

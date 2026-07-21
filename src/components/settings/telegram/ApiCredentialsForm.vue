@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+
+defineProps<{
+  busy?: boolean;
+}>();
 
 const emit = defineEmits<{
   submit: [apiId: number, apiHash: string, phone: string];
@@ -8,9 +12,19 @@ const emit = defineEmits<{
 const apiId = ref('');
 const apiHash = ref('');
 const phone = ref('');
-const loading = ref(false);
 const error = ref('');
 
+onMounted(() => {
+  const stored = localStorage.getItem('telegram_config');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed.apiId) apiId.value = String(parsed.apiId);
+      if (parsed.apiHash) apiHash.value = parsed.apiHash;
+      if (parsed.phone) phone.value = parsed.phone;
+    } catch {}
+  }
+});
 async function onSubmit() {
   error.value = '';
 
@@ -29,12 +43,7 @@ async function onSubmit() {
     return;
   }
 
-  loading.value = true;
-  try {
-    emit('submit', parsedId, apiHash.value.trim(), phoneClean);
-  } finally {
-    loading.value = false;
-  }
+  emit('submit', parsedId, apiHash.value.trim(), phoneClean);
 }
 </script>
 
@@ -84,10 +93,10 @@ async function onSubmit() {
 
     <button
       @click="onSubmit"
-      :disabled="loading"
+      :disabled="busy"
       class="w-full px-4 py-2 text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
     >
-      {{ loading ? 'Sending code...' : 'Send Code' }}
+      {{ busy ? 'Sending code...' : 'Send Code' }}
     </button>
   </div>
 </template>

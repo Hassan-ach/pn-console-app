@@ -1,26 +1,23 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+defineProps<{
+  busy?: boolean;
+}>();
 const emit = defineEmits<{
   submit: [password: string];
 }>();
 
 const password = ref('');
-const loading = ref(false);
 const error = ref('');
 
-async function onSubmit() {
+function onSubmit() {
   error.value = '';
   if (!password.value) {
     error.value = 'Password is required';
     return;
   }
-  loading.value = true;
-  try {
-    emit('submit', password.value);
-  } finally {
-    loading.value = false;
-  }
+  emit('submit', password.value);
 }
 </script>
 
@@ -46,10 +43,10 @@ async function onSubmit() {
 
     <button
       @click="onSubmit"
-      :disabled="loading || !password"
+      :disabled="busy || !password"
       class="w-full px-4 py-2 text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
     >
-      {{ loading ? 'Verifying...' : 'Submit Password' }}
+      {{ busy ? 'Verifying...' : 'Submit Password' }}
     </button>
   </div>
 </template>
