@@ -16,18 +16,6 @@ export interface BulkInsertResult {
     inserted: number;
 }
 
-export interface Insight {
-    id: string | null;
-    organizationId?: string;
-    envolopsRef?: string[];
-    broadcasted?: boolean;
-    type: "TASK" | "URGENCY" | "INFO" | "DECISION";
-    content: string;
-    owners: string[];
-    version?: number;
-    createdAt?: string;
-}
-
 function ensureSuccess<T>(res: ApiResponse<T>): void {
   if (!res.success) throw new Error(res.message);
 }

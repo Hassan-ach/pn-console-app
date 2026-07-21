@@ -2,6 +2,9 @@
 import { ref, onMounted, computed } from 'vue';
 import { PluginManagerClient, type PluginInfo } from '../api/plugin-manager';
 import PluginCard from '../components/PluginCard.vue';
+import AlertBanner from '../components/AlertBanner.vue';
+import PluginStatus from '../components/ingestion/PluginStatus.vue';
+import { userError } from '../utils/plugin';
 
 const manager = new PluginManagerClient();
 
@@ -26,21 +29,6 @@ const selectedCount = computed(() => {
   for (const s of selections.value.values()) if (s.selected) n++;
   return n;
 });
-
-function userError(raw: string, fallback: string): string {
-  const map: Record<string, string> = {
-    'SESSION_PASSWORD_NEEDED': 'This account requires two-factor authentication.',
-    'PHONE_NUMBER_INVALID': 'The phone number is invalid. Check the format (+countrycode...).',
-    'PHONE_CODE_INVALID': 'The verification code is incorrect.',
-    'PHONE_CODE_EXPIRED': 'The verification code has expired. Request a new one.',
-    'AUTH_KEY_DUPLICATED': 'This session was terminated by another login.',
-    'FLOOD_WAIT': 'Too many requests. Please wait a moment and try again.',
-    'CHAT_ID_INVALID': 'The chat ID or username could not be found.',
-    'USERNAME_NOT_OCCUPIED': 'This username does not exist.',
-  };
-  const key = Object.keys(map).find(k => raw.includes(k));
-  return key ? map[key] : fallback;
-}
 
 onMounted(async () => {
   try {
@@ -69,16 +57,6 @@ function connectHref(pluginName: string): string | undefined {
 function toggle(name: string) {
   const s = selections.value.get(name);
   if (s) s.selected = !s.selected;
-}
-
-function timeAgo(ts: number): string {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 async function backfillOne(s: PluginSelection) {
@@ -127,21 +105,8 @@ async function retryOne(name: string) {
   <main class="max-w-3xl mx-auto p-6">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Ingestion</h1>
 
-    <div
-      v-if="successText"
-      class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center justify-between"
-    >
-      <span>{{ successText }}</span>
-      <button @click="successText = ''" class="text-green-400 hover:text-green-600 ml-2">&times;</button>
-    </div>
-
-    <div
-      v-if="errorText"
-      class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between"
-    >
-      <span>{{ errorText }}</span>
-      <button @click="errorText = ''" class="text-red-400 hover:text-red-600 ml-2">&times;</button>
-    </div>
+    <AlertBanner v-if="successText" type="success" :message="successText" @dismiss="successText = ''" />
+    <AlertBanner v-if="errorText" type="error" :message="errorText" @dismiss="errorText = ''" />
 
     <div class="flex items-center justify-between mb-4 gap-4">
       <p v-if="plugins.length" class="text-sm text-gray-500">{{ plugins.length }} integration(s)</p>
@@ -179,25 +144,13 @@ async function retryOne(name: string) {
           @update:limit="(v: number) => { const s = sel(p.name); if (s) s.limit = v; }"
         />
 
-        <div v-if="sel(p.name)?.loading" class="mt-1 ml-1 text-xs text-gray-400">Backfilling...</div>
-        <div v-else-if="sel(p.name)?.result" class="mt-1 ml-1 flex items-center gap-2">
-          <span class="text-xs text-green-600">
-            Inserted {{ sel(p.name)!.result!.inserted }} — {{ sel(p.name)!.result!.envelopes }} total envelopes
-          </span>
-          <span v-if="sel(p.name)!.lastSynced" class="text-[10px] text-gray-400">
-            synced {{ timeAgo(sel(p.name)!.lastSynced!) }}
-          </span>
-        </div>
-        <div v-else-if="sel(p.name)?.error" class="mt-1 ml-1 flex items-center gap-2">
-          <span class="text-xs text-red-600">{{ sel(p.name)!.error }}</span>
-          <button
-            @click="retryOne(p.name)"
-            :disabled="overallLoading"
-            class="text-xs text-[#FF8C4B] hover:underline disabled:text-gray-300 disabled:no-underline"
-          >
-            Retry
-          </button>
-        </div>
+        <PluginStatus
+          :loading="sel(p.name)?.loading ?? false"
+          :result="sel(p.name)?.result ?? null"
+          :error="sel(p.name)?.error ?? ''"
+          :last-synced="sel(p.name)?.lastSynced ?? null"
+          @retry="retryOne(p.name)"
+        />
       </div>
 
       <div v-if="plugins.length === 0" class="text-sm text-gray-400 py-8 text-center">
