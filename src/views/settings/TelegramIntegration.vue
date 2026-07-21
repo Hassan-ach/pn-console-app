@@ -77,7 +77,7 @@ function setSuccess(msg: string) {
 onMounted(async () => {
   await loadConfig();
   const params = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
-  if (params.get('connect') === 'true' && !isConnected()) {
+  if (params.get('connect') === 'true' && !hasSession.value) {
     window.location.hash = 'settings-telegram';
     startConnect();
   }
@@ -89,8 +89,11 @@ async function loadConfig() {
     const config = await client.getConfig('telegram');
     pluginConfig.value = config;
     existingChats.value = (config as any).chats ?? [];
+    const state = await client.getState('telegram');
+    hasSession.value = state.hasSession ?? false;
   } catch {
     pluginConfig.value = null;
+    hasSession.value = false;
   } finally {
     configLoading.value = false;
   }
@@ -157,18 +160,21 @@ async function onAuthComplete() {
     chats: chatList,
   } as any;
 
-  const msg = await client.createConfig('telegram', configPayload);
-  setSuccess(msg);
+  const result = await client.login('telegram', configPayload);
+  setSuccess(`Logged in to Telegram as @${result.platformUsername}`);
 
   localStorage.setItem(
     'telegram_config',
     JSON.stringify({
       apiId: savedCredentials.value.apiId,
       apiHash: savedCredentials.value.apiHash,
+      sessionString: auth.state.value.sessionString,
       phone: auth.state.value.phone,
       chats: chatList,
     }),
   );
+
+  hasSession.value = true;
 
   wizardStep.value = 'done';
   await loadConfig();
@@ -189,6 +195,7 @@ async function confirmDisconnect() {
   }
   auth.reset();
   savedCredentials.value = null;
+  hasSession.value = false;
   connectedSince.value = null;
   localStorage.removeItem('telegram_connected_since');
   wizardStep.value = 'idle';
@@ -217,8 +224,7 @@ function onResendCode() {
   startConnect();
 }
 
-const isConnected = () =>
-  pluginConfig.value !== null && !!(pluginConfig.value as any).sessionString;
+const hasSession = ref(false);
 </script>
 
 <template>
@@ -237,7 +243,7 @@ const isConnected = () =>
       <div v-if="wizardStep === 'idle'" class="mb-6">
         <PluginCard
           name="telegram"
-          :connected="isConnected()"
+          :connected="hasSession"
           :phone="(pluginConfig as any)?.phone"
           :loading="configLoading"
           @connect="startConnect"
@@ -306,7 +312,7 @@ const isConnected = () =>
         </button>
       </div>
 
-      <div v-if="wizardStep === 'done' || (isConnected() && wizardStep === 'idle')" class="bg-white border border-gray-200 rounded-lg p-5">
+      <div v-if="wizardStep === 'done' || (hasSession && wizardStep === 'idle')" class="bg-white border border-gray-200 rounded-lg p-5">
         <ChatConfigForm
           :phone="(pluginConfig as any)?.phone ?? auth.state.value.phone"
           :chats="existingChats"

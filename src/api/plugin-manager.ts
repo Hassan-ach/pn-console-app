@@ -10,6 +10,7 @@ export interface PluginInfo {
     name: string;
     connected?: boolean;
     hasConfig?: boolean;
+    hasSession?: boolean;
 }
 
 export interface BulkInsertResult {
@@ -44,6 +45,17 @@ export class PluginManagerClient {
         );
         ensureSuccess(res);
         return res.message;
+    }
+
+    async login(
+        name: string,
+        config: Record<string, unknown>,
+    ): Promise<{ platformUserId: string; platformUsername: string }> {
+        const res = await api.post<
+            ApiResponse<{ platformUserId: string; platformUsername: string }>
+        >(`/plugins/${name}/login`, { config });
+        ensureSuccess(res);
+        return res.data!;
     }
 
     async createConfig(
