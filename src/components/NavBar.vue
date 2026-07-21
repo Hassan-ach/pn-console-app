@@ -48,15 +48,15 @@ onUnmounted(() => {
         >
         <span class="text-gray-300">|</span>
         <a
-          href="#telegram"
-          @click.prevent="navigate('telegram')"
+          href="#ingestion"
+          @click.prevent="navigate('ingestion')"
           :class="
-            currentPage === 'telegram'
+            currentPage === 'ingestion'
               ? 'text-[#FF8C4B] font-semibold'
               : 'text-gray-400 hover:text-gray-600'
           "
           class="px-3 py-1.5 text-sm transition-colors"
-          >Telegram Demo</a
+          >Ingestion</a
         >
         <span class="text-gray-300">|</span>
 

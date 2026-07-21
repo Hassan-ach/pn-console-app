@@ -1,25 +1,46 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+export interface ChatEntry {
+  name: string;
+  id: string;
+}
+
 const props = defineProps<{
   phone: string;
-  chats?: string[];
+  chats?: ChatEntry[];
+  resolveChat?: (identifier: string) => Promise<{ title: string; id: string } | null>;
 }>();
 
 const emit = defineEmits<{
-  save: [chats: string[]];
+  save: [chats: ChatEntry[]];
   disconnect: [];
 }>();
 
 const chatInput = ref('');
-const chatList = ref<string[]>(props.chats ?? []);
+const chatList = ref<ChatEntry[]>(props.chats ?? []);
 const saving = ref(false);
+const resolving = ref(false);
+const error = ref('');
 
-function addChat() {
+async function addChat() {
   const val = chatInput.value.trim();
   if (!val) return;
-  if (chatList.value.includes(val)) return;
-  chatList.value.push(val);
+  if (chatList.value.some(c => c.id === val)) return;
+
+  if (props.resolveChat) {
+    resolving.value = true;
+    const entity = await props.resolveChat(val);
+    resolving.value = false;
+    if (!entity) {
+      error.value = 'Could not resolve chat. Check the username/ID and try again.';
+      return;
+    }
+    error.value = '';
+    chatList.value.push({ name: entity.title, id: val });
+  } else {
+    chatList.value.push({ name: val, id: val });
+  }
   chatInput.value = '';
 }
 
@@ -54,7 +75,8 @@ async function onSave() {
       <p class="text-xs text-gray-400 mb-2">
         Enter @usernames or numeric chat IDs. Press Enter or click Add.
       </p>
-      <div class="flex gap-2">
+      <div v-if="error" class="text-xs text-red-600 mb-1">{{ error }}</div>
+    <div class="flex gap-2">
         <input
           v-model="chatInput"
           type="text"
@@ -64,19 +86,21 @@ async function onSave() {
         />
         <button
           @click="addChat"
-          class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          :disabled="resolving"
+          class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
         >
-          Add
+          {{ resolving ? 'Resolving...' : 'Add' }}
         </button>
       </div>
 
       <div v-if="chatList.length > 0" class="mt-3 flex flex-wrap gap-2">
         <span
           v-for="(chat, i) in chatList"
-          :key="i"
+          :key="chat.id"
           class="inline-flex items-center gap-1 px-2.5 py-1 text-sm bg-[#FF8C4B]/10 text-[#FF8C4B] rounded-full"
+          :title="chat.id"
         >
-          {{ chat }}
+          {{ chat.name }}
           <button
             @click="removeChat(i)"
             class="text-[#FF8C4B] hover:text-red-600 text-lg leading-none"
