@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { PluginManagerClient } from '../../api/plugin-manager';
 import { useTelegramAuth } from '../../composables/useTelegramAuth';
 import PluginCard from '../../components/PluginCard.vue';
@@ -33,6 +33,15 @@ const submitting = ref(false);
 const showDisconnectDialog = ref(false);
 const codeFormRef = ref<InstanceType<typeof VerificationCodeForm> | null>(null);
 let successTimer: ReturnType<typeof setTimeout> | null = null;
+
+const stepDefs = [
+  { key: 'credentials', label: 'Phone' },
+  { key: 'code', label: 'Code' },
+  { key: 'password', label: 'Password' },
+  { key: 'done', label: 'Done' },
+];
+
+const currentStep = computed(() => stepDefs.findIndex(s => s.key === wizardStep.value));
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -225,7 +234,7 @@ const isConnected = () =>
 
       <h1 class="text-2xl font-bold text-gray-900 mb-6">Telegram Integration</h1>
 
-      <div class="mb-6">
+      <div v-if="wizardStep === 'idle'" class="mb-6">
         <PluginCard
           name="telegram"
           :connected="isConnected()"
@@ -233,6 +242,28 @@ const isConnected = () =>
           :loading="configLoading"
           @connect="startConnect"
         />
+      </div>
+
+      <div v-else class="mb-6">
+        <div class="flex items-center justify-center gap-0">
+          <template v-for="(s, i) in stepDefs" :key="s.key">
+            <div class="flex items-center">
+              <div
+                class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors"
+                :class="i < currentStep ? 'bg-green-500 text-white' : i === currentStep ? 'bg-[#FF8C4B] text-white' : 'bg-gray-200 text-gray-400'"
+              >{{ i + 1 }}</div>
+              <span
+                class="ml-1.5 text-xs font-medium whitespace-nowrap"
+                :class="i < currentStep ? 'text-green-600' : i === currentStep ? 'text-[#FF8C4B]' : 'text-gray-400'"
+              >{{ s.label }}</span>
+            </div>
+            <div
+              v-if="i < stepDefs.length - 1"
+              class="w-8 h-0.5 mx-2 rounded"
+              :class="i < currentStep ? 'bg-green-400' : 'bg-gray-200'"
+            />
+          </template>
+        </div>
       </div>
 
       <div
