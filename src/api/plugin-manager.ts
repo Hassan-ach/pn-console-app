@@ -90,10 +90,10 @@ export class PluginManagerClient {
         return res.message;
     }
 
-    async backfill(plugin: string, limit: number): Promise<BulkInsertResult> {
+    async backfill(items: { plugin: string; limit: number }[]): Promise<BulkInsertResult> {
         const res = await api.post<ApiResponse<BulkInsertResult>>(
             "/ingestion/backfill",
-            { plugin, limit },
+            items,
         );
         if (!res.success) {
             const errors = (res.data as any)?.errors;

@@ -86,7 +86,7 @@ async function backfillOne(s: PluginSelection) {
   s.result = null;
   s.error = '';
   try {
-    const r = await manager.backfill(s.name, s.limit);
+    const r = await manager.backfill([{ plugin: s.name, limit: s.limit }]);
     const countRes = await manager.getEnvelopeCount(s.name);
     s.result = { inserted: r.inserted, envelopes: countRes.count };
     s.lastSynced = Date.now();
