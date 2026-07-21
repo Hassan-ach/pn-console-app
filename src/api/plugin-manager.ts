@@ -8,34 +8,28 @@ interface ApiResponse<T> {
 
 export interface PluginInfo {
     name: string;
-    state: string;
+    connected?: boolean;
+    hasConfig?: boolean;
 }
 
 export interface BulkInsertResult {
     inserted: number;
 }
 
-export interface Insight {
-    id: string | null;
-    organizationId?: string;
-    envolopsRef?: string[];
-    broadcasted?: boolean;
-    type: "TASK" | "URGENCY" | "INFO" | "DECISION";
-    content: string;
-    owners: string[];
-    version?: number;
-    createdAt?: string;
-}
-
 function ensureSuccess<T>(res: ApiResponse<T>): void {
   if (!res.success) throw new Error(res.message);
 }
 
+let listCache: { data: PluginInfo[]; ts: number } | null = null;
+const LIST_TTL = 10_000;
+
 export class PluginManagerClient {
     async list(): Promise<PluginInfo[]> {
+        if (listCache && Date.now() - listCache.ts < LIST_TTL) return listCache.data;
         const res = await api.get<ApiResponse<PluginInfo[]>>("/plugins");
         ensureSuccess(res);
-        return res.data ?? [];
+        listCache = { data: res.data ?? [], ts: Date.now() };
+        return listCache.data;
     }
 
     async getState(name: string): Promise<PluginInfo> {
@@ -84,10 +78,10 @@ export class PluginManagerClient {
         return res.message;
     }
 
-    async backfill(plugin: string, limit: number): Promise<BulkInsertResult> {
+    async backfill(items: { plugin: string; limit: number }[]): Promise<BulkInsertResult> {
         const res = await api.post<ApiResponse<BulkInsertResult>>(
             "/ingestion/backfill",
-            { plugin, limit },
+            items,
         );
         if (!res.success) {
             const errors = (res.data as any)?.errors;
