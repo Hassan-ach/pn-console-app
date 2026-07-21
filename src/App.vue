@@ -4,6 +4,8 @@ import DemoPage from "./demo/DemoPage.vue";
 import InsightsDemoPage from "./demo/InsightsDemoPage.vue";
 import SignupPage from "./views/SignupPage.vue";
 import LoginPage from "./views/LoginPage.vue";
+import ForgotPasswordPage from "./views/ForgotPasswordPage.vue";
+import ResetPasswordPage from "./views/ResetPasswordPage.vue";
 import DashboardPage from "./views/DashboardPage.vue";
 import SettingsPage from "./views/SettingsPage.vue";
 import NavBar from "./components/NavBar.vue";
@@ -37,7 +39,13 @@ function resolvePage(hash: string): string {
     if (!p || p === "login" || p === "signup") return "dashboard";
     return p;
   }
-  if (p === "login" || p === "signup") return p;
+  if (
+    p === "login" ||
+    p === "signup" ||
+    p === "forgot-password" ||
+    p === "reset-password"
+  )
+    return p;
   return "login";
 }
 
@@ -54,7 +62,12 @@ function onHashChange() {
 
   const authenticated = isAuthenticated();
   if (!authenticated) {
-    if (page.value !== "login" && page.value !== "signup") {
+    if (
+      page.value !== "login" &&
+      page.value !== "signup" &&
+      page.value !== "forgot-password" &&
+      page.value !== "reset-password"
+    ) {
       window.location.hash = "login";
       return;
     }
@@ -135,6 +148,8 @@ onUnmounted(() => {
   <NavBar v-if="showNavBar" />
   <LoginPage v-if="page === 'login'" />
   <SignupPage v-else-if="page === 'signup'" :key="'signup-' + signupKey" />
+  <ForgotPasswordPage v-else-if="page === 'forgot-password'" />
+  <ResetPasswordPage v-else-if="page === 'reset-password'" />
   <DashboardPage v-else-if="page === 'dashboard'" />
   <SettingsPage v-else-if="page === 'settings'" />
   <DemoPage v-else-if="page === 'telegram'" />

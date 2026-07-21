@@ -264,7 +264,7 @@ async function handleLogin() {
 
           <div class="flex items-center justify-between">
             <a
-              href="#"
+              href="#forgot-password"
               class="text-[13px] text-gray-500 hover:text-gray-700 font-medium cursor-pointer"
               >Forgot password?</a
             >
