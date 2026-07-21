@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from "vue";
-import DemoPage from "./demo/DemoPage.vue";
+import IngestionPage from "./views/IngestionPage.vue";
 import InsightsDemoPage from "./demo/InsightsDemoPage.vue";
 import InsightsRouterOutlet from "./demo/InsightsRouterOutlet.vue";
 import SignupPage from "./views/SignupPage.vue";
 import LoginPage from "./views/LoginPage.vue";
 import DashboardPage from "./views/DashboardPage.vue";
 import SettingsPage from "./views/SettingsPage.vue";
+import TelegramIntegration from "./views/settings/TelegramIntegration.vue";
 import NavBar from "./components/NavBar.vue";
 
 const signupKey = ref(0);
 
-const AUTH_PAGES = new Set(["dashboard", "telegram", "insights", "insightsDemo", "settings"]);
+const AUTH_PAGES = new Set(["dashboard", "ingestion", "insights", "insightsDemo", "settings", "settings-telegram"]);
 
 const rawHash = window.location.hash;
 const oauthTokenMatch = rawHash.match(/access_token=([^&]+)/);
@@ -138,7 +139,8 @@ onUnmounted(() => {
   <SignupPage v-else-if="page === 'signup'" :key="'signup-' + signupKey" />
   <DashboardPage v-else-if="page === 'dashboard'" />
   <SettingsPage v-else-if="page === 'settings'" />
-  <DemoPage v-else-if="page === 'telegram'" />
+  <IngestionPage v-else-if="page === 'ingestion'" />
   <InsightsDemoPage v-else-if="page === 'insightsDemo'" />
   <InsightsRouterOutlet v-else-if="page === 'insights'" />
+  <TelegramIntegration v-else-if="page === 'settings-telegram'" />
 </template>

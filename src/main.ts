@@ -1,11 +1,27 @@
-import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
-import router from './router'
-import { insightsRouter } from './router/insightsRouter'
+import { createApp } from "vue";
+import "./style.css";
+import App from "./App.vue";
+import { insightsRouter } from "./router/insightsRouter";
 
-const app = createApp(App)
+async function bootstrap() {
+    // Load GramJS bundle (IIFE sets window.TelegramLib)
+    if (!window.TelegramLib) {
+        await new Promise<void>((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "/telegram-bundle.js";
+            script.onload = () => resolve();
+            script.onerror = () =>
+                reject(new Error("Failed to load telegram-bundle.js"));
+            document.head.appendChild(script);
+        });
+    }
 
-app.use(insightsRouter)
-// app.use(router)
-app.mount('#app')
+    const app = createApp(App);
+
+    app.use(insightsRouter);
+    // app.use(router);
+
+    app.mount("#app");
+}
+
+bootstrap();

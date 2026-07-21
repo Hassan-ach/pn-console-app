@@ -302,7 +302,6 @@ watch(
         </button>
       </div>
     </div>
-
     <div v-if="detail" class="mt-4">
       <button
         type="button"
