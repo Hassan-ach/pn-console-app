@@ -4,6 +4,7 @@ import { ref } from 'vue';
 const props = defineProps<{
   phone: string;
   chats?: string[];
+  resolveChat?: (identifier: string) => Promise<{ title: string; id: string } | null>;
 }>();
 
 const emit = defineEmits<{
@@ -14,12 +15,26 @@ const emit = defineEmits<{
 const chatInput = ref('');
 const chatList = ref<string[]>(props.chats ?? []);
 const saving = ref(false);
+const resolving = ref(false);
 
-function addChat() {
+async function addChat() {
   const val = chatInput.value.trim();
   if (!val) return;
   if (chatList.value.includes(val)) return;
-  chatList.value.push(val);
+
+  if (props.resolveChat) {
+    resolving.value = true;
+    const entity = await props.resolveChat(val);
+    resolving.value = false;
+    if (!entity) {
+      alert('Could not resolve chat. Check the username/ID and try again.');
+      return;
+    }
+    const label = entity.title !== val ? `${entity.title} (${val})` : val;
+    chatList.value.push(label);
+  } else {
+    chatList.value.push(val);
+  }
   chatInput.value = '';
 }
 
@@ -64,9 +79,10 @@ async function onSave() {
         />
         <button
           @click="addChat"
-          class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          :disabled="resolving"
+          class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
         >
-          Add
+          {{ resolving ? 'Resolving...' : 'Add' }}
         </button>
       </div>
 

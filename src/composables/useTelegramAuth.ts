@@ -30,6 +30,7 @@ export interface UseTelegramAuthReturn {
     submitCode(code: string): Promise<void>;
     submitPassword(password: string): Promise<void>;
     reset(): void;
+    resolveChatEntity(identifier: string): Promise<{ title: string; id: string } | null>;
 }
 
 export function useTelegramAuth(): UseTelegramAuthReturn {
@@ -144,6 +145,30 @@ export function useTelegramAuth(): UseTelegramAuthReturn {
         }
     }
 
+    async function resolveChatEntity(identifier: string): Promise<{ title: string; id: string } | null> {
+        let c = client;
+        let cleanup = false;
+        if (!c) {
+            const stored = localStorage.getItem('telegram_config');
+            if (!stored) return null;
+            try {
+                const parsed = JSON.parse(stored);
+                const { TelegramClient, StringSession } = getLib();
+                c = new TelegramClient(new StringSession(parsed.sessionString ?? ''), parsed.apiId, parsed.apiHash, { connectionRetries: 3, useWSS: true });
+                await c.connect();
+                cleanup = true;
+            } catch { return null; }
+        }
+        try {
+            const entity = await c.getEntity(identifier);
+            const id = String(entity.id);
+            const title = (entity as any).title ?? (entity as any).username ?? (`${(entity as any).firstName ?? ''} ${(entity as any).lastName ?? ''}`.trim() || id);
+            return { title, id };
+        } catch { return null; } finally {
+            if (cleanup) c?.destroy().catch(() => {});
+        }
+    }
+
     function reset() {
         client?.destroy().catch(() => {});
         client = null;
@@ -151,5 +176,5 @@ export function useTelegramAuth(): UseTelegramAuthReturn {
         state.value = { step: "idle", phone: "" };
     }
 
-    return { state, sendCode, submitCode, submitPassword, reset };
+    return { state, sendCode, submitCode, submitPassword, reset, resolveChatEntity };
 }

@@ -63,6 +63,14 @@ function onDigitInput(index: number) {
   }
 }
 
+function resetCodeFields() {
+  codeDigits.value = ['', '', '', '', ''];
+  error.value = '';
+  setTimeout(() => inputs.value[0]?.focus(), 0);
+}
+
+defineExpose({ resetCodeFields });
+
 function onDigitKeydown(index: number, event: KeyboardEvent) {
   if (event.key === 'Backspace' && !codeDigits.value[index] && index > 0) {
     inputs.value[index - 1]?.focus();
