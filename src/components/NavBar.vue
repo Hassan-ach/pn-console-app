@@ -1,27 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-
 const currentPage = ref("");
-
 function onHashChange() {
   const raw = window.location.hash.replace("#", "");
   currentPage.value = raw.split("?")[0] || "";
 }
-
 function navigate(view: string) {
   window.location.hash = view;
 }
-
 onMounted(() => {
   onHashChange();
   window.addEventListener("hashchange", onHashChange);
 });
-
 onUnmounted(() => {
   window.removeEventListener("hashchange", onHashChange);
 });
 </script>
-
 <template>
   <nav
     class="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200"
@@ -59,19 +53,30 @@ onUnmounted(() => {
           >Ingestion</a
         >
         <span class="text-gray-300">|</span>
-
-<a
-  href="#settings"
-  @click.prevent="navigate('settings')"
-  :class="
-    currentPage === 'settings'
-      ? 'text-[#FF8C4B] font-semibold'
-      : 'text-gray-400 hover:text-gray-600'
-  "
-  class="px-3 py-1.5 text-sm transition-colors"
->
-  Settings
-</a>
+        <a
+          href="#insights"
+          @click.prevent="navigate('insights')"
+          :class="
+            currentPage === 'insights'
+              ? 'text-[#FF8C4B] font-semibold'
+              : 'text-gray-400 hover:text-gray-600'
+          "
+          class="px-3 py-1.5 text-sm transition-colors"
+          >Insights</a
+        >
+        <span class="text-gray-300">|</span>
+        <a
+          href="#settings"
+          @click.prevent="navigate('settings')"
+          :class="
+            currentPage === 'settings'
+              ? 'text-[#FF8C4B] font-semibold'
+              : 'text-gray-400 hover:text-gray-600'
+          "
+          class="px-3 py-1.5 text-sm transition-colors"
+        >
+          Settings
+        </a>
       </div>
     </div>
     <div class="flex items-center gap-4">

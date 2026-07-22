@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import InsightsPage from '../views/InsightsPage.vue';
-import InsightDetailPage from '../views/InsightDetailPage.vue';
+import InsightsPage from '../views/insights/InsightsPage.vue';
+import InsightDetailPage from '../views/insights/InsightDetailPage.vue';
 
 const router = createRouter({
   history: createWebHashHistory(),

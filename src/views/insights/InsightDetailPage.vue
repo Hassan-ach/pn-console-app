@@ -3,16 +3,16 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   insightsApi,
+  VALID_ACTIONS,
+  STATUS_LABELS,
+  STATUS_COLORS,
   type InsightDetail,
   type InsightSummary,
   type InsightType,
   type InsightActionStatus,
   type SourceEnvelope,
-  VALID_ACTIONS,
-  STATUS_LABELS,
-  STATUS_COLORS,
-} from '../api/insights-api';
-import SourceEnvelopeCard from '../components/SourceEnvelopeCard.vue';
+} from '../../api/insights-api';
+import SourceEnvelopeCard from '../../components/insights/SourceEnvelopeCard.vue';
 
 const TYPE_LABELS: Record<InsightType, string> = {
   TASK: 'Task',
@@ -63,20 +63,34 @@ const allowedActions = computed<InsightActionStatus[]>(() => {
   return VALID_ACTIONS[detail.value.type] ?? [];
 });
 
+const availableStatuses = computed(() => {
+  if (!detail.value) return [];
+  return allowedActions.value.filter((a) => a !== detail.value?.status);
+});
+
+const selectedAction = ref<InsightActionStatus | ''>('');
+
 const statusLabel = computed(() => detail.value ? STATUS_LABELS[detail.value.status] : '');
 const statusColor = computed(() => detail.value ? STATUS_COLORS[detail.value.status] : '');
 
-async function performAction(action: InsightActionStatus) {
-  if (!detail.value || actionLoading.value) return;
+async function performAction() {
+  if (!detail.value || !selectedAction.value || selectedAction.value === detail.value.status || actionLoading.value) return;
   actionLoading.value = true;
   actionError.value = null;
   try {
-    detail.value = await insightsApi.setAction(detail.value.id, action);
+    detail.value = await insightsApi.setAction(detail.value.id, selectedAction.value);
   } catch (err) {
     actionError.value = err instanceof Error ? err.message : 'Failed to perform action.';
   } finally {
+    selectedAction.value = detail.value?.status ?? '';
     actionLoading.value = false;
   }
+}
+
+function onDetailStatusChange(event: Event) {
+  const target = event.target as HTMLSelectElement;
+  selectedAction.value = target.value as InsightActionStatus;
+  performAction();
 }
 
 async function loadSourceEnvelopes() {
@@ -169,6 +183,7 @@ watch(
     sourceEnvelopes.value = [];
     sourceEnvelopesError.value = null;
     actionError.value = null;
+    selectedAction.value = '';
   },
 );
 </script>
@@ -209,57 +224,82 @@ watch(
         >
           {{ TYPE_LABELS[detail.type] }}
         </span>
+        <span v-if="actionError" class="text-[11px] text-red-600">{{ actionError }}</span>
         <span
-          class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+          v-if="availableStatuses.length > 0"
+          class="relative inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium"
           :class="statusColor"
         >
-          {{ statusLabel }}
+          <select
+            :value="detail.status"
+            :disabled="actionLoading"
+            class="appearance-none bg-transparent pl-0 pr-3 py-0 text-[11px] font-medium text-inherit cursor-pointer focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            @change="onDetailStatusChange"
+          >
+            <option :value="detail.status" disabled>
+              {{ statusLabel }}
+            </option>
+            <option v-for="action in availableStatuses" :key="action" :value="action">
+              {{ STATUS_LABELS[action] }}
+            </option>
+          </select>
+          <svg class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" width="8" height="8" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
         </span>
       </div>
 
       <p class="mt-4 text-[17px] leading-relaxed">{{ detail.content }}</p>
 
-      <dl class="mt-6 flex flex-col gap-2.5 border-t border-stone-200 pt-4">
-        <div class="flex justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">Created</dt>
-          <dd class="text-right font-medium">{{ new Date(detail.createdAt).toLocaleString() }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">Source</dt>
-          <dd class="text-right font-medium">{{ detail.sourcePlugin ?? '—' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">Broadcasted</dt>
-          <dd class="text-right font-medium">{{ detail.broadcasted ? 'Yes' : 'No' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">Version</dt>
-          <dd class="text-right font-medium">{{ detail.version }}</dd>
-        </div>
-        <div v-if="detail.envolopsRef.length" class="flex items-center justify-between gap-3 text-[13px]">
-          <dt class="text-stone-500">References</dt>
-          <dd>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 font-medium text-orange-600 hover:text-orange-700"
-              @click="showReferences = !showReferences"
-            >
-              {{ detail.envolopsRef.length }} source{{ detail.envolopsRef.length > 1 ? 's' : '' }}
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 16 16"
-                fill="none"
-                class="transition-transform"
-                :class="showReferences ? 'rotate-180' : ''"
-                aria-hidden="true"
-              >
-                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </button>
-          </dd>
-        </div>
-      </dl>
+      <!-- Metadata Badges -->
+      <div class="mt-5 flex flex-wrap gap-2 border-t border-stone-200 pt-4">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-[12px] font-medium text-stone-600">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-stone-400">
+            <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+          </svg>
+          {{ new Date(detail.createdAt).toLocaleDateString() }}
+        </span>
+        <span v-if="detail.sourcePlugin" class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-[12px] font-medium text-stone-600">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-stone-400">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+          {{ detail.sourcePlugin }}
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-[12px] font-medium text-stone-600">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-stone-400">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          {{ detail.broadcasted ? 'Broadcasted' : 'Not broadcasted' }}
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-[12px] font-medium text-stone-600">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-stone-400">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" />
+          </svg>
+          v{{ detail.version }}
+        </span>
+        <button
+          v-if="detail.envolopsRef.length"
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1 text-[12px] font-medium text-orange-700 transition-colors hover:bg-orange-100"
+          @click="showReferences = !showReferences"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-orange-400">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          {{ detail.envolopsRef.length }} ref{{ detail.envolopsRef.length > 1 ? 's' : '' }}
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 16 16"
+            fill="none"
+            class="transition-transform"
+            :class="showReferences ? 'rotate-180' : ''"
+            aria-hidden="true"
+          >
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
 
       <div v-if="showReferences && detail.envolopsRef.length" class="mt-3 flex flex-col gap-2 border-t border-stone-100 pt-4">
         <div v-if="sourceEnvelopesLoading" class="py-3 text-center text-sm text-stone-500">
@@ -284,24 +324,7 @@ watch(
       </div>
     </article>
 
-    <div v-if="detail && allowedActions.length > 0" class="mt-4 rounded-xl border border-stone-200 bg-white p-4">
-      <p class="mb-3 text-[13px] font-medium text-stone-600">Actions</p>
-      <div v-if="actionError" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">
-        {{ actionError }}
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="action in allowedActions"
-          :key="action"
-          type="button"
-          :disabled="actionLoading"
-          class="rounded-lg border border-stone-200 bg-white px-3.5 py-1.5 text-[13px] font-medium text-stone-700 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
-          @click="performAction(action)"
-        >
-          {{ STATUS_LABELS[action] }}
-        </button>
-      </div>
-    </div>
+    <!-- Version History -->
     <div v-if="detail" class="mt-4">
       <button
         type="button"
@@ -394,24 +417,17 @@ watch(
             </div>
             <div v-else-if="versionDetails[v.id]">
               <p class="text-[14px] leading-relaxed">{{ versionDetails[v.id].content }}</p>
-              <dl class="mt-3 flex flex-col gap-2 border-t border-stone-100 pt-3">
-                <div class="flex justify-between gap-3 text-[12.5px]">
-                  <dt class="text-stone-500">Created</dt>
-                  <dd class="text-right font-medium">{{ new Date(versionDetails[v.id].createdAt).toLocaleString() }}</dd>
-                </div>
-                <div class="flex justify-between gap-3 text-[12.5px]">
-                  <dt class="text-stone-500">Source</dt>
-                  <dd class="text-right font-medium">{{ versionDetails[v.id].sourcePlugin ?? '—' }}</dd>
-                </div>
-                <div class="flex justify-between gap-3 text-[12.5px]">
-                  <dt class="text-stone-500">Broadcasted</dt>
-                  <dd class="text-right font-medium">{{ versionDetails[v.id].broadcasted ? 'Yes' : 'No' }}</dd>
-                </div>
-                <!-- <div v-if="versionDetails[v.id].envolopsRef.length" class="flex justify-between gap-3 text-[12.5px]"> -->
-                <!--   <dt class="text-stone-500">References</dt> -->
-                <!--   <dd class="text-right font-medium">{{ versionDetails[v.id].envolopsRef.join(', ') }}</dd> -->
-                <!-- </div> -->
-              </dl>
+              <div class="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-medium text-stone-600">
+                  {{ new Date(versionDetails[v.id].createdAt).toLocaleDateString() }}
+                </span>
+                <span v-if="versionDetails[v.id].sourcePlugin" class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-medium text-stone-600">
+                  {{ versionDetails[v.id].sourcePlugin }}
+                </span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-medium text-stone-600">
+                  {{ versionDetails[v.id].broadcasted ? 'Broadcasted' : 'Not broadcasted' }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
