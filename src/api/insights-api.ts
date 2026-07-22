@@ -21,10 +21,10 @@ export const INSIGHT_TYPES: InsightType[] = [
 ]
 
 export const VALID_ACTIONS: Record<InsightType, InsightActionStatus[]> = {
-  INFO: ['NOTED'],
-  TASK: ['DONE', 'BLOCKED', 'IN_REVIEW'],
-  DECISION: ['DECIDED', 'DELEGATED', 'DELAYED'],
-  URGENCY: ['HIDDEN'],
+  INFO: ['PENDING', 'NOTED'],
+  TASK: ['PENDING', 'DONE', 'BLOCKED', 'IN_REVIEW'],
+  DECISION: ['PENDING', 'DECIDED', 'DELEGATED', 'DELAYED'],
+  URGENCY: ['PENDING', 'HIDDEN'],
 }
 
 export const STATUS_LABELS: Record<InsightActionStatus, string> = {
@@ -76,9 +76,13 @@ export interface SourceEnvelope {
 }
 
 export const insightsApi = {
-  list(type?: InsightType) {
-    const query = type ? `?type=${encodeURIComponent(type)}` : ''
-    return api.get<InsightSummary[]>(`/insights${query}`)
+  list(type?: InsightType, status?: InsightActionStatus, limit?: number) {
+    const params = new URLSearchParams()
+    if (type) params.set('type', type)
+    if (status) params.set('status', status)
+    if (limit) params.set('limit', String(limit))
+    const query = params.toString()
+    return api.get<InsightSummary[]>(`/insights${query ? `?${query}` : ''}`)
   },
 
   get(id: string) {

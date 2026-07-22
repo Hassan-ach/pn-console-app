@@ -19,8 +19,6 @@ async function bootstrap() {
     const app = createApp(App);
 
     app.use(insightsRouter);
-    // app.use(router);
-
     app.mount("#app");
 }
 
