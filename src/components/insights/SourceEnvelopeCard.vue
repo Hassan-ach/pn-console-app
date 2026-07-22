@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SourceEnvelope } from '../api/insights-api';
+import type { SourceEnvelope } from '../../api/insights-api';
 
 defineProps<{
   envelope: SourceEnvelope;

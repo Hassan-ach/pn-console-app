@@ -1,11 +1,10 @@
-import { createRouter, createMemoryHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import InsightsPage from '../views/insights/InsightsPage.vue';
 import InsightDetailPage from '../views/insights/InsightDetailPage.vue';
 
-export const insightsRouter = createRouter({
-  history: createMemoryHistory(),
+const router = createRouter({
+  history: createWebHashHistory(),
   routes: [
-    { path: '/', redirect: '/insights' },
     {
       path: '/insights',
       name: 'insights',
@@ -19,3 +18,5 @@ export const insightsRouter = createRouter({
     },
   ],
 });
+
+export default router;
