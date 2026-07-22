@@ -3,28 +3,16 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   insightsApi,
-<<<<<<< HEAD:src/views/insights/InsightDetailPage.vue
   VALID_ACTIONS,
   STATUS_LABELS,
   STATUS_COLORS,
-=======
->>>>>>> cdc9405733d89a63d14657a17d0cca50568cfabd:src/views/InsightDetailPage.vue
   type InsightDetail,
   type InsightSummary,
   type InsightType,
   type InsightActionStatus,
   type SourceEnvelope,
-<<<<<<< HEAD:src/views/insights/InsightDetailPage.vue
 } from '../../api/insights-api';
 import SourceEnvelopeCard from '../../components/insights/SourceEnvelopeCard.vue';
-=======
-  VALID_ACTIONS,
-  STATUS_LABELS,
-  STATUS_COLORS,
-} from '../api/insights-api';
-import SourceEnvelopeCard from '../components/SourceEnvelopeCard.vue';
->>>>>>> cdc9405733d89a63d14657a17d0cca50568cfabd:src/views/InsightDetailPage.vue
-
 const TYPE_LABELS: Record<InsightType, string> = {
   TASK: 'Task',
   URGENCY: 'Urgent',
@@ -74,7 +62,6 @@ const allowedActions = computed<InsightActionStatus[]>(() => {
   return VALID_ACTIONS[detail.value.type] ?? [];
 });
 
-<<<<<<< HEAD:src/views/insights/InsightDetailPage.vue
 const availableStatuses = computed(() => {
   if (!detail.value) return [];
   return allowedActions.value.filter((a) => a !== detail.value?.status);
@@ -95,33 +82,16 @@ async function performAction() {
     actionError.value = err instanceof Error ? err.message : 'Failed to perform action.';
   } finally {
     selectedAction.value = detail.value?.status ?? '';
-=======
-const statusLabel = computed(() => detail.value ? STATUS_LABELS[detail.value.status] : '');
-const statusColor = computed(() => detail.value ? STATUS_COLORS[detail.value.status] : '');
-
-async function performAction(action: InsightActionStatus) {
-  if (!detail.value || actionLoading.value) return;
-  actionLoading.value = true;
-  actionError.value = null;
-  try {
-    detail.value = await insightsApi.setAction(detail.value.id, action);
-  } catch (err) {
-    actionError.value = err instanceof Error ? err.message : 'Failed to perform action.';
-  } finally {
->>>>>>> cdc9405733d89a63d14657a17d0cca50568cfabd:src/views/InsightDetailPage.vue
     actionLoading.value = false;
   }
 }
 
-<<<<<<< HEAD:src/views/insights/InsightDetailPage.vue
 function onDetailStatusChange(event: Event) {
   const target = event.target as HTMLSelectElement;
   selectedAction.value = target.value as InsightActionStatus;
   performAction();
 }
 
-=======
->>>>>>> cdc9405733d89a63d14657a17d0cca50568cfabd:src/views/InsightDetailPage.vue
 async function loadSourceEnvelopes() {
   if (!detail.value || !detail.value.latestVersionId) return;
   sourceEnvelopesLoading.value = true;
@@ -212,10 +182,7 @@ watch(
     sourceEnvelopes.value = [];
     sourceEnvelopesError.value = null;
     actionError.value = null;
-<<<<<<< HEAD:src/views/insights/InsightDetailPage.vue
     selectedAction.value = '';
-=======
->>>>>>> cdc9405733d89a63d14657a17d0cca50568cfabd:src/views/InsightDetailPage.vue
   },
 );
 </script>
@@ -256,7 +223,6 @@ watch(
         >
           {{ TYPE_LABELS[detail.type] }}
         </span>
-<<<<<<< HEAD:src/views/insights/InsightDetailPage.vue
         <span v-if="actionError" class="text-[11px] text-red-600">{{ actionError }}</span>
         <span
           v-if="availableStatuses.length > 0"
@@ -279,13 +245,6 @@ watch(
           <svg class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" width="8" height="8" viewBox="0 0 16 16" fill="none">
             <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-=======
-        <span
-          class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-          :class="statusColor"
-        >
-          {{ statusLabel }}
->>>>>>> cdc9405733d89a63d14657a17d0cca50568cfabd:src/views/InsightDetailPage.vue
         </span>
       </div>
 
@@ -364,28 +323,7 @@ watch(
       </div>
     </article>
 
-<<<<<<< HEAD:src/views/insights/InsightDetailPage.vue
     <!-- Version History -->
-=======
-    <div v-if="detail && allowedActions.length > 0" class="mt-4 rounded-xl border border-stone-200 bg-white p-4">
-      <p class="mb-3 text-[13px] font-medium text-stone-600">Actions</p>
-      <div v-if="actionError" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">
-        {{ actionError }}
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="action in allowedActions"
-          :key="action"
-          type="button"
-          :disabled="actionLoading"
-          class="rounded-lg border border-stone-200 bg-white px-3.5 py-1.5 text-[13px] font-medium text-stone-700 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
-          @click="performAction(action)"
-        >
-          {{ STATUS_LABELS[action] }}
-        </button>
-      </div>
-    </div>
->>>>>>> cdc9405733d89a63d14657a17d0cca50568cfabd:src/views/InsightDetailPage.vue
     <div v-if="detail" class="mt-4">
       <button
         type="button"
@@ -478,7 +416,6 @@ watch(
             </div>
             <div v-else-if="versionDetails[v.id]">
               <p class="text-[14px] leading-relaxed">{{ versionDetails[v.id].content }}</p>
-<<<<<<< HEAD:src/views/insights/InsightDetailPage.vue
               <div class="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-medium text-stone-600">
                   {{ new Date(versionDetails[v.id].createdAt).toLocaleDateString() }}
@@ -490,26 +427,6 @@ watch(
                   {{ versionDetails[v.id].broadcasted ? 'Broadcasted' : 'Not broadcasted' }}
                 </span>
               </div>
-=======
-              <dl class="mt-3 flex flex-col gap-2 border-t border-stone-100 pt-3">
-                <div class="flex justify-between gap-3 text-[12.5px]">
-                  <dt class="text-stone-500">Created</dt>
-                  <dd class="text-right font-medium">{{ new Date(versionDetails[v.id].createdAt).toLocaleString() }}</dd>
-                </div>
-                <div class="flex justify-between gap-3 text-[12.5px]">
-                  <dt class="text-stone-500">Source</dt>
-                  <dd class="text-right font-medium">{{ versionDetails[v.id].sourcePlugin ?? '—' }}</dd>
-                </div>
-                <div class="flex justify-between gap-3 text-[12.5px]">
-                  <dt class="text-stone-500">Broadcasted</dt>
-                  <dd class="text-right font-medium">{{ versionDetails[v.id].broadcasted ? 'Yes' : 'No' }}</dd>
-                </div>
-                <!-- <div v-if="versionDetails[v.id].envolopsRef.length" class="flex justify-between gap-3 text-[12.5px]"> -->
-                <!--   <dt class="text-stone-500">References</dt> -->
-                <!--   <dd class="text-right font-medium">{{ versionDetails[v.id].envolopsRef.join(', ') }}</dd> -->
-                <!-- </div> -->
-              </dl>
->>>>>>> cdc9405733d89a63d14657a17d0cca50568cfabd:src/views/InsightDetailPage.vue
             </div>
           </div>
         </div>
