@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { InsightSummary, InsightType } from '../api/insights-api';
+import { STATUS_LABELS, STATUS_COLORS } from '../api/insights-api';
 
 const props = defineProps<{
   insight: InsightSummary;
@@ -38,9 +39,9 @@ const TYPE_META: Record<
 };
 
 const meta = computed(() => TYPE_META[props.insight.type]);
+const statusLabel = computed(() => STATUS_LABELS[props.insight.status]);
+const statusColor = computed(() => STATUS_COLORS[props.insight.status]);
 
-// Keep the row content short — the full text still lives in `content`,
-// this is just what renders before an item is expanded.
 const preview = computed(() => {
   const text = props.insight.content.trim();
   return text.length > 140 ? `${text.slice(0, 140)}…` : text;
@@ -64,6 +65,12 @@ const preview = computed(() => {
           :class="meta.badge"
         >
           {{ meta.label }}
+        </span>
+        <span
+          class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+          :class="statusColor"
+        >
+          {{ statusLabel }}
         </span>
       </span>
       <span class="text-[14.5px] leading-relaxed text-stone-800">{{ preview }}</span>
