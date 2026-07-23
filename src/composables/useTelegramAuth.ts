@@ -1,12 +1,64 @@
 import { ref, type Ref } from 'vue';
 
+interface TelegramApiAuthSignIn {
+    phoneNumber: string;
+    phoneCode: string;
+    phoneCodeHash: string;
+}
+interface TelegramApiAuthCheckPassword {
+    password: unknown;
+}
+interface TelegramApiAccountGetPassword {
+    className: string;
+}
+interface TelegramApiAuthSignInResult {
+    phoneCodeHash: string;
+}
+interface TelegramApi {
+    auth: {
+        SignIn: new (params: TelegramApiAuthSignIn) => unknown;
+        CheckPassword: new (params: TelegramApiAuthCheckPassword) => unknown;
+    };
+    account: {
+        GetPassword: new () => TelegramApiAccountGetPassword;
+    };
+}
+interface TelegramClientInstance {
+    connect(): Promise<void>;
+    sendCode(
+        params: { apiId: number; apiHash: string },
+        phone: string,
+    ): Promise<TelegramApiAuthSignInResult>;
+    invoke<T>(request: T): Promise<unknown>;
+    getEntity(identifier: string): Promise<{
+        id: number;
+        title?: string;
+        username?: string;
+        firstName?: string;
+        lastName?: string;
+    }>;
+    getDialogs(query: Record<string, unknown>): Promise<unknown[]>;
+    session: { save(): string };
+    destroy(): Promise<void>;
+}
+
 declare global {
     interface Window {
         TelegramLib: {
-            TelegramClient: typeof import('telegram').TelegramClient;
-            StringSession: typeof import('telegram/sessions').StringSession;
-            Api: typeof import('telegram').Api;
-            computeCheck: (passwordInfo: any, password: string) => Promise<any>;
+            TelegramClient: new (
+                session: { save(): string },
+                apiId: number,
+                apiHash: string,
+                options: Record<string, unknown>,
+            ) => TelegramClientInstance;
+            StringSession: new (sessionString: string) => {
+                save(): string;
+            };
+            Api: TelegramApi;
+            computeCheck: (
+                passwordInfo: TelegramApiAccountGetPassword,
+                password: string,
+            ) => Promise<unknown>;
         };
     }
 }
@@ -37,7 +89,7 @@ export interface UseTelegramAuthReturn {
 
 export function useTelegramAuth(): UseTelegramAuthReturn {
     const state = ref<AuthState>({ step: 'idle', phone: '' });
-    let client: any = null;
+    let client: TelegramClientInstance | null = null;
     let phoneInfo: { phone: string; phoneCodeHash: string } | null = null;
 
     function getLib() {
@@ -60,11 +112,11 @@ export function useTelegramAuth(): UseTelegramAuthReturn {
             const result = await client.sendCode({ apiId, apiHash }, phone);
             phoneInfo = { phone, phoneCodeHash: result.phoneCodeHash };
             state.value = { step: 'awaiting-code', phone };
-        } catch (err: any) {
+        } catch (err: unknown) {
             state.value = {
                 step: 'error',
                 phone,
-                error: err.message ?? String(err),
+                error: err instanceof Error ? err.message : String(err),
             };
             throw err;
         }
@@ -89,14 +141,19 @@ export function useTelegramAuth(): UseTelegramAuthReturn {
                     phoneCodeHash: phoneInfo.phoneCodeHash,
                 }),
             );
-            const sessionString = client.session.save() as string;
+            const sessionString = client.session.save();
             state.value = {
                 step: 'connected',
                 phone: phoneInfo.phone,
                 sessionString,
             };
-        } catch (err: any) {
-            if (err.errorMessage === 'SESSION_PASSWORD_NEEDED') {
+        } catch (err: unknown) {
+            if (
+                err instanceof Error &&
+                'errorMessage' in err &&
+                (err as { errorMessage: string }).errorMessage ===
+                    'SESSION_PASSWORD_NEEDED'
+            ) {
                 state.value = {
                     step: 'awaiting-password',
                     phone: phoneInfo.phone,
@@ -106,7 +163,7 @@ export function useTelegramAuth(): UseTelegramAuthReturn {
             state.value = {
                 step: 'error',
                 phone: state.value.phone,
-                error: err.message ?? String(err),
+                error: err instanceof Error ? err.message : String(err),
             };
             throw err;
         }
@@ -127,21 +184,24 @@ export function useTelegramAuth(): UseTelegramAuthReturn {
             const passwordInfo = await client.invoke(
                 new Api.account.GetPassword(),
             );
-            const inputCheck = await computeCheck(passwordInfo, password);
+            const inputCheck = await computeCheck(
+                passwordInfo as TelegramApiAccountGetPassword,
+                password,
+            );
             await client.invoke(
                 new Api.auth.CheckPassword({ password: inputCheck }),
             );
-            const sessionString = client.session.save() as string;
+            const sessionString = client.session.save();
             state.value = {
                 step: 'connected',
                 phone: phoneInfo.phone,
                 sessionString,
             };
-        } catch (err: any) {
+        } catch (err: unknown) {
             state.value = {
                 step: 'error',
                 phone: state.value.phone,
-                error: err.message ?? String(err),
+                error: err instanceof Error ? err.message : String(err),
             };
             throw err;
         }
@@ -150,13 +210,17 @@ export function useTelegramAuth(): UseTelegramAuthReturn {
     async function resolveChatEntity(
         identifier: string,
     ): Promise<{ title: string; id: string } | null> {
-        let c = client;
+        let c: TelegramClientInstance | null = client;
         let cleanup = false;
         if (!c) {
             const stored = localStorage.getItem('telegram_config');
             if (!stored) return null;
             try {
-                const parsed = JSON.parse(stored);
+                const parsed = JSON.parse(stored) as {
+                    sessionString?: string;
+                    apiId: number;
+                    apiHash: string;
+                };
                 const { TelegramClient, StringSession } = getLib();
                 c = new TelegramClient(
                     new StringSession(parsed.sessionString ?? ''),

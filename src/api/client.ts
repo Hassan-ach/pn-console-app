@@ -1,4 +1,5 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
+const BASE_URL: string =
+    (import.meta.env.VITE_API_URL as string) ?? 'http://localhost:3000/api';
 
 async function request<T>(
     method: string,
@@ -25,22 +26,29 @@ async function request<T>(
         const text = await res.text();
         let errorMessage = `Request failed (${res.status})`;
         try {
-            const json = JSON.parse(text);
-            if (json && typeof json.message === 'string') {
+            const json: unknown = JSON.parse(text);
+            if (
+                json &&
+                typeof json === 'object' &&
+                'message' in json &&
+                typeof json.message === 'string'
+            ) {
                 errorMessage = json.message;
             } else if (
                 json &&
+                typeof json === 'object' &&
+                'message' in json &&
                 Array.isArray(json.message) &&
                 json.message.length > 0
             ) {
-                errorMessage = json.message[0];
+                errorMessage = json.message[0] as string;
             }
         } catch {
             // response wasn't JSON, use default message
         }
         throw new Error(errorMessage);
     }
-    return res.json();
+    return (await res.json()) as T;
 }
 
 export const api = {

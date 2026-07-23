@@ -99,8 +99,11 @@ export class PluginManagerClient {
             items,
         );
         if (!res.success) {
-            const errors = (res.data as any)?.errors;
-            const detail = errors?.length ? errors[0].message : res.message;
+            const data = res.data as
+                { errors?: { message: string }[] } | undefined;
+            const detail = data?.errors?.length
+                ? data.errors[0].message
+                : res.message;
             throw new Error(detail);
         }
         return res.data!;

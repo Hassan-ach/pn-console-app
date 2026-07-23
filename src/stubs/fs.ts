@@ -19,19 +19,20 @@ export const createWriteStream = () => ({
     end: () => {},
 });
 export const promises = {
-    readFile: async () => '',
-    writeFile: async () => {},
-    mkdir: async () => {},
-    readdir: async () => [],
-    stat: async () => ({
-        isFile: () => false,
-        isDirectory: () => false,
-        size: 0,
-    }),
-    unlink: async () => {},
-    rename: async () => {},
-    appendFile: async () => {},
-    copyFile: async () => {},
+    readFile: () => Promise.resolve(''),
+    writeFile: () => Promise.resolve(),
+    mkdir: () => Promise.resolve(),
+    readdir: () => Promise.resolve([] as string[]),
+    stat: () =>
+        Promise.resolve({
+            isFile: () => false,
+            isDirectory: () => false,
+            size: 0,
+        }),
+    unlink: () => Promise.resolve(),
+    rename: () => Promise.resolve(),
+    appendFile: () => Promise.resolve(),
+    copyFile: () => Promise.resolve(),
 };
 export default {
     existsSync,
