@@ -74,9 +74,8 @@ onUnmounted(() => {
               : 'text-gray-400 hover:text-gray-600'
           "
           class="px-3 py-1.5 text-sm transition-colors"
+          >Settings</a
         >
-          Settings
-        </a>
       </div>
     </div>
     <div class="flex items-center gap-4">
