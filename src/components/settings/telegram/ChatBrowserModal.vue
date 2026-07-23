@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { fetchTelegramDialogs, type DialogEntry } from '../../../utils/telegram-dialogs';
+import { fetchTelegramDialogs, type DialogEntry } from '../../../composables/useTelegramDialogs';
 import type { ChatEntry } from './ChatConfigForm.vue';
 
 const props = defineProps<{
@@ -131,10 +131,12 @@ function avatarColor(name: string) {
 
           <!-- List -->
           <template v-else>
-            <label
+            <div
               v-for="dialog in filtered"
               :key="dialog.id"
-              class="flex items-center gap-3 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors"
+              @click="toggle(dialog.id)"
+              class="flex items-center gap-3 py-3 px-2 border-b border-gray-50 cursor-pointer rounded-lg transition-colors"
+              :class="selectedIds.has(dialog.id) ? 'bg-[#FF8C4B]/10' : 'hover:bg-gray-50'"
             >
               <div
                 class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
@@ -148,13 +150,15 @@ function avatarColor(name: string) {
                   {{ dialog.type }}
                 </span>
               </div>
-              <input
-                type="checkbox"
-                :checked="selectedIds.has(dialog.id)"
-                @change="toggle(dialog.id)"
-                class="w-4 h-4 rounded border-gray-300 text-[#FF8C4B] focus:ring-[#FF8C4B]/40 shrink-0"
-              />
-            </label>
+              <svg
+                v-if="selectedIds.has(dialog.id)"
+                class="w-5 h-5 text-[#FF8C4B] shrink-0"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </div>
           </template>
         </div>
 
