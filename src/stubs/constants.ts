@@ -8,4 +8,15 @@ export const O_APPEND = 1024;
 export const S_IRUSR = 256;
 export const S_IWUSR = 128;
 export const S_IXUSR = 64;
-export default { O_RDONLY, O_WRONLY, O_RDWR, O_CREAT, O_EXCL, O_TRUNC, O_APPEND, S_IRUSR, S_IWUSR, S_IXUSR };
+export default {
+    O_RDONLY,
+    O_WRONLY,
+    O_RDWR,
+    O_CREAT,
+    O_EXCL,
+    O_TRUNC,
+    O_APPEND,
+    S_IRUSR,
+    S_IWUSR,
+    S_IXUSR,
+};
