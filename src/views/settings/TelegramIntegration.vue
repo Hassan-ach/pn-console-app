@@ -321,7 +321,6 @@ const hasSession = ref(false);
         <ChatConfigForm
           :phone="(pluginConfig as any)?.phone ?? auth.state.value.phone"
           :chats="existingChats"
-          :resolve-chat="auth.resolveChatEntity"
           @save="onSaveChats"
           @disconnect="showDisconnectDialog = true"
         />

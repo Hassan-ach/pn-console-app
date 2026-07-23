@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import ChatBrowserModal from './ChatBrowserModal.vue';
 
 export interface ChatEntry {
   name: string;
@@ -9,7 +10,6 @@ export interface ChatEntry {
 const props = defineProps<{
   phone: string;
   chats?: ChatEntry[];
-  resolveChat?: (identifier: string) => Promise<{ title: string; id: string } | null>;
 }>();
 
 const emit = defineEmits<{
@@ -17,31 +17,17 @@ const emit = defineEmits<{
   disconnect: [];
 }>();
 
-const chatInput = ref('');
 const chatList = ref<ChatEntry[]>(props.chats ?? []);
 const saving = ref(false);
-const resolving = ref(false);
-const error = ref('');
+const openBrowser = ref(false);
 
-async function addChat() {
-  const val = chatInput.value.trim();
-  if (!val) return;
-  if (chatList.value.some(c => c.id === val)) return;
-
-  if (props.resolveChat) {
-    resolving.value = true;
-    const entity = await props.resolveChat(val);
-    resolving.value = false;
-    if (!entity) {
-      error.value = 'Could not resolve chat. Check the username/ID and try again.';
-      return;
+function onBrowserSelect(chats: ChatEntry[]) {
+  const existing = new Set(chatList.value.map(c => c.id));
+  for (const chat of chats) {
+    if (!existing.has(chat.id)) {
+      chatList.value.push(chat);
     }
-    error.value = '';
-    chatList.value.push({ name: entity.title, id: val });
-  } else {
-    chatList.value.push({ name: val, id: val });
   }
-  chatInput.value = '';
 }
 
 function removeChat(index: number) {
@@ -71,25 +57,13 @@ async function onSave() {
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Chats to monitor</label>
-      <p class="text-xs text-gray-400 mb-2">
-        Enter @usernames or numeric chat IDs. Press Enter or click Add.
-      </p>
-      <div v-if="error" class="text-xs text-red-600 mb-1">{{ error }}</div>
-    <div class="flex gap-2">
-        <input
-          v-model="chatInput"
-          type="text"
-          placeholder="@channel or -100123456789"
-          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF8C4B]/40 focus:border-[#FF8C4B]"
-          @keydown.enter.prevent="addChat"
-        />
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-sm font-medium text-gray-700">Chats to monitor</label>
         <button
-          @click="addChat"
-          :disabled="resolving"
-          class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          @click="openBrowser = true"
+          class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
         >
-          {{ resolving ? 'Resolving...' : 'Add' }}
+          Browse chats
         </button>
       </div>
 
@@ -107,7 +81,7 @@ async function onSave() {
           >&times;</button>
         </span>
       </div>
-      <p v-else class="text-sm text-gray-400 mt-2">No chats added yet.</p>
+      <p v-else class="text-sm text-gray-400 mt-2">No chats added yet. Click "Browse chats" to select.</p>
     </div>
 
     <div class="flex gap-3">
@@ -125,5 +99,12 @@ async function onSave() {
         Disconnect
       </button>
     </div>
+
+    <ChatBrowserModal
+      :open="openBrowser"
+      :existing="chatList"
+      @close="openBrowser = false"
+      @select="onBrowserSelect"
+    />
   </div>
 </template>
