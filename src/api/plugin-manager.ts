@@ -1,9 +1,9 @@
-import { api } from "./client";
+import { api } from './client';
 
 interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data?: T;
+    success: boolean;
+    message: string;
+    data?: T;
 }
 
 export interface PluginInfo {
@@ -18,7 +18,7 @@ export interface BulkInsertResult {
 }
 
 function ensureSuccess<T>(res: ApiResponse<T>): void {
-  if (!res.success) throw new Error(res.message);
+    if (!res.success) throw new Error(res.message);
 }
 
 let listCache: { data: PluginInfo[]; ts: number } | null = null;
@@ -26,8 +26,9 @@ const LIST_TTL = 10_000;
 
 export class PluginManagerClient {
     async list(): Promise<PluginInfo[]> {
-        if (listCache && Date.now() - listCache.ts < LIST_TTL) return listCache.data;
-        const res = await api.get<ApiResponse<PluginInfo[]>>("/plugins");
+        if (listCache && Date.now() - listCache.ts < LIST_TTL)
+            return listCache.data;
+        const res = await api.get<ApiResponse<PluginInfo[]>>('/plugins');
         ensureSuccess(res);
         listCache = { data: res.data ?? [], ts: Date.now() };
         return listCache.data;
@@ -90,9 +91,11 @@ export class PluginManagerClient {
         return res.message;
     }
 
-    async backfill(items: { plugin: string; limit: number }[]): Promise<BulkInsertResult> {
+    async backfill(
+        items: { plugin: string; limit: number }[],
+    ): Promise<BulkInsertResult> {
         const res = await api.post<ApiResponse<BulkInsertResult>>(
-            "/ingestion/backfill",
+            '/ingestion/backfill',
             items,
         );
         if (!res.success) {
@@ -104,7 +107,7 @@ export class PluginManagerClient {
     }
 
     async getEnvelopeCount(sourcePlugin?: string): Promise<{ count: number }> {
-        const params = sourcePlugin ? `?sourcePlugin=${sourcePlugin}` : "";
+        const params = sourcePlugin ? `?sourcePlugin=${sourcePlugin}` : '';
         return api.get<{ count: number }>(`/demo/envelopes/count${params}`);
     }
 }

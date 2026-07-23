@@ -8,7 +8,9 @@
         "build": "node scripts/build-telegram.mjs && vue-tsc --noEmit && vite build",
         "preview": "vite preview",
         "tauri": "tauri",
-        "build-telegram": "node scripts/build-telegram.mjs"
+        "build-telegram": "node scripts/build-telegram.mjs",
+        "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+        "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
     },
     "dependencies": {
         "@tauri-apps/api": "^2",
@@ -19,6 +21,14 @@
         "vue-router": "^4.6.4"
     },
     "devDependencies": {
+        "globals": "^17.0.0",
+        "typescript-eslint": "^8.20.0",
+        "@eslint/eslintrc": "^3.2.0",
+        "@eslint/js": "^9.18.0",
+        "eslint": "^9.18.0",
+        "eslint-config-prettier": "^10.0.1",
+        "eslint-plugin-prettier": "^5.2.2",
+        "prettier": "^3.4.2",
         "@tailwindcss/vite": "^4.3.2",
         "@tauri-apps/cli": "^2",
         "@types/node": "^26.1.1",
