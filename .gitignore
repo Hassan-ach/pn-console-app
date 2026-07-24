@@ -23,7 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-pnpm-lock.yaml
+# pnpm-lock.yaml
 package-lock.json
 requirements/
 tmp/
@@ -31,7 +31,7 @@ tmp/
 .opencode/
 graphify-out/
 postgres/
-src-tauri/Cargo.lock
+# src-tauri/Cargo.lock
 src-tauri/*.db
 reports/
 token-optimizer
