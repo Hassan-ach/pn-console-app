@@ -23,10 +23,10 @@ jobs:
           echo "##vso[task.prependpath]$(CARGO_HOME)/bin"
         displayName: "Install Rust Toolchain"
 
-      - task: NodeTool@0
+      - task: UseNode@1
         inputs:
-          versionSpec: "20.x"
-        displayName: "Install Node 20"
+          version: "26.x"
+        displayName: "Install Node 26"
 
       - script: corepack enable && corepack prepare pnpm@11.3.0 --activate
         displayName: "Enable pnpm"
