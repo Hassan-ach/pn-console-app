@@ -102,7 +102,7 @@ async function retryOne(name: string) {
 </script>
 
 <template>
-  <main class="max-w-3xl mx-auto p-6">
+  <div class="max-w-3xl mx-auto">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Ingestion</h1>
 
     <AlertBanner v-if="successText" type="success" :message="successText" @dismiss="successText = ''" />
@@ -157,5 +157,5 @@ async function retryOne(name: string) {
         No integrations found.
       </div>
     </div>
-  </main>
+  </div>
 </template>

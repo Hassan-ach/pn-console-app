@@ -20,27 +20,25 @@ async function confirmLogout() {
 </script>
 
 <template>
-  <main class="flex-1 p-8 bg-[#FCFAF8] min-h-screen">
-    <div class="max-w-4xl mx-auto">
-      <h1 class="text-3xl font-bold text-gray-900">Settings</h1>
-      <p class="text-gray-500 mt-2">Manage your account and billing.</p>
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900">Settings</h1>
+    <p class="text-gray-500 mt-2">Manage your account and billing.</p>
 
-      <div class="mt-10 bg-white rounded-xl border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900">Account</h2>
-        <p class="text-sm text-gray-500 mt-1">
-          Sign out of your account on this device.
-        </p>
-        <button
-          type="button"
-          class="mt-4 px-5 py-2.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-          @click="showLogoutDialog = true"
-        >
-          Log Out
-        </button>
-      </div>
-
-      <IntegrationsCard class="mt-6" />
+    <div class="mt-10 bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-900">Account</h2>
+      <p class="text-sm text-gray-500 mt-1">
+        Sign out of your account on this device.
+      </p>
+      <button
+        type="button"
+        class="mt-4 px-5 py-2.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+        @click="showLogoutDialog = true"
+      >
+        Log Out
+      </button>
     </div>
+
+    <IntegrationsCard class="mt-6" />
 
     <ConfirmDialog
       :open="showLogoutDialog"
@@ -52,5 +50,5 @@ async function confirmLogout() {
       @confirm="confirmLogout"
       @cancel="showLogoutDialog = false"
     />
-  </main>
+  </div>
 </template>
