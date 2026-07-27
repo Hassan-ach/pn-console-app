@@ -101,9 +101,5 @@ onUnmounted(() => {
 <template>
   <LoginPage v-if="page === 'login'" />
   <SignupPage v-else-if="page === 'signup'" :key="'signup-' + signupKey" />
-<<<<<<< HEAD
   <HomePage v-else-if="isAuthenticated()" />
-=======
-  <HomePage v-else />
->>>>>>> 748a0c2c95b87769d2be989b6aafdc45b79b1caa
 </template>
