@@ -13,9 +13,26 @@ if (oauthTokenMatch) {
   sessionStorage.setItem("access_token", oauthTokenMatch[1]);
 }
 
+function isAuthenticated(): boolean {
+  const token = sessionStorage.getItem("access_token");
+  if (!token) return false;
+  try {
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64));
+    return typeof payload.exp === "number" && payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 function onHashChange() {
   const raw = window.location.hash.replace("#", "");
-  page.value = raw.split("?")[0] || "";
+  const p = raw.split("?")[0] || "";
+  if (!isAuthenticated() && p !== "login" && p !== "signup") {
+    window.location.hash = "#login";
+    return;
+  }
+  page.value = p;
 }
 
 function onOauthMessage(event: MessageEvent) {
@@ -84,5 +101,5 @@ onUnmounted(() => {
 <template>
   <LoginPage v-if="page === 'login'" />
   <SignupPage v-else-if="page === 'signup'" :key="'signup-' + signupKey" />
-  <HomePage v-else />
+  <HomePage v-else-if="isAuthenticated()" />
 </template>
