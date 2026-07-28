@@ -251,6 +251,7 @@ const hasSession = ref(false);
           :connected="hasSession"
           :phone="(pluginConfig as any)?.phone"
           :loading="configLoading"
+          :status="hasSession ? 'CONNECTED' : 'NOT_CONNECTED'"
           @connect="startConnect"
         />
       </div>

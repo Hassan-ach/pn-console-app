@@ -1,51 +1,35 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { PluginManagerClient, type PluginInfo } from '../api/plugin-manager';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { PluginManagerClient, type PluginInfo, type PluginActivationStatus } from '../api/plugin-manager';
 import PluginCard from '../components/PluginCard.vue';
 import AlertBanner from '../components/AlertBanner.vue';
-import PluginStatus from '../components/ingestion/PluginStatus.vue';
+import MetricsPanel from '../components/ingestion/MetricsPanel.vue';
+import ChatConfigForm from '../components/settings/telegram/ChatConfigForm.vue';
+import type { ChatEntry } from '../components/settings/telegram/ChatConfigForm.vue';
 import { userError } from '../utils/plugin';
 
-const manager = new PluginManagerClient();
+const client = new PluginManagerClient();
 
-interface PluginSelection {
-  name: string;
-  selected: boolean;
-  limit: number;
-  loading: boolean;
-  result: { inserted: number; envelopes: number } | null;
-  error: string;
-  lastSynced: number | null;
+interface EnrichedPlugin extends PluginInfo {
+  status: string;
+  activation: PluginActivationStatus | null;
+  configError: string;
 }
 
-const plugins = ref<PluginInfo[]>([]);
-const selections = ref<Map<string, PluginSelection>>(new Map());
-const overallLoading = ref(false);
+const plugins = ref<EnrichedPlugin[]>([]);
+const expanded = ref<string | null>(null);
 const successText = ref('');
 const errorText = ref('');
-
-const selectedCount = computed(() => {
-  let n = 0;
-  for (const s of selections.value.values()) if (s.selected) n++;
-  return n;
-});
+const polling = ref<ReturnType<typeof setInterval> | null>(null);
 
 onMounted(async () => {
-  try {
-    plugins.value = await manager.list();
-    const map = new Map<string, PluginSelection>();
-    for (const p of plugins.value) {
-      map.set(p.name, { name: p.name, selected: false, limit: -1, loading: false, result: null, error: '', lastSynced: null });
-    }
-    selections.value = map;
-  } catch (e: any) {
-    errorText.value = 'Failed to load integrations: ' + userError(e.message ?? e, e.message ?? e);
-  }
+  await loadPlugins();
+  polling.value = setInterval(loadPlugins, 5000);
 });
 
-function sel(name: string): PluginSelection | undefined {
-  return selections.value.get(name);
-}
+onUnmounted(() => {
+  if (polling.value) clearInterval(polling.value);
+});
 
 function connectHref(pluginName: string): string | undefined {
   const map: Record<string, string> = {
@@ -54,50 +38,69 @@ function connectHref(pluginName: string): string | undefined {
   return map[pluginName];
 }
 
-function toggle(name: string) {
-  const s = selections.value.get(name);
-  if (s) s.selected = !s.selected;
-}
-
-async function backfillOne(s: PluginSelection) {
-  s.loading = true;
-  s.result = null;
-  s.error = '';
+async function loadPlugins() {
   try {
-    const r = await manager.backfill([{ plugin: s.name, limit: s.limit }]);
-    const countRes = await manager.getEnvelopeCount(s.name);
-    s.result = { inserted: r.inserted, envelopes: countRes.count };
-    s.lastSynced = Date.now();
+    const list = await client.list();
+    const enriched = await Promise.all(list.map(async (p) => {
+      if (p.hasConfig || p.connected) {
+        try {
+          const status = await client.getActivationStatus(p.name);
+          return { ...p, status: status.status, activation: status, configError: '' };
+        } catch {
+          return { ...p, status: 'CONNECTED', activation: null, configError: '' };
+        }
+      }
+      return { ...p, status: 'NOT_CONNECTED', activation: null, configError: '' };
+    }));
+    plugins.value = enriched;
   } catch (e: any) {
-    s.error = userError(e.message ?? String(e), e.message ?? String(e));
-  }
-  s.loading = false;
-}
-
-async function runBackfill() {
-  overallLoading.value = true;
-  successText.value = '';
-  errorText.value = '';
-  let ok = 0, fail = 0;
-
-  for (const s of selections.value.values()) {
-    if (!s.selected) continue;
-    await backfillOne(s);
-    if (s.error) fail++; else ok++;
-  }
-
-  overallLoading.value = false;
-  if (fail === 0) {
-    successText.value = `Backfill complete — ${ok} plugin(s) refreshed`;
-  } else {
-    errorText.value = `${ok} succeeded, ${fail} failed — see cards for details`;
+    errorText.value = 'Failed to load integrations: ' + userError(e.message ?? e, e.message ?? e);
   }
 }
 
-async function retryOne(name: string) {
-  const s = selections.value.get(name);
-  if (!s) return;
-  await backfillOne(s);
+function toggleExpand(name: string) {
+  expanded.value = expanded.value === name ? null : name;
+}
+
+async function activate(name: string) {
+  try {
+    await client.activate(name);
+    successText.value = `${name} activated`;
+    await loadPlugins();
+  } catch (e: any) {
+    errorText.value = `Failed to activate ${name}: ${userError(e.message ?? e, e.message ?? e)}`;
+  }
+}
+
+async function deactivate(name: string) {
+  try {
+    await client.deactivate(name);
+    successText.value = `${name} deactivated`;
+    await loadPlugins();
+  } catch (e: any) {
+    errorText.value = `Failed to deactivate ${name}: ${userError(e.message ?? e, e.message ?? e)}`;
+  }
+}
+
+async function saveChats(name: string, chats: ChatEntry[]) {
+  try {
+    await client.updateChats(name, chats);
+    successText.value = `Chats saved for ${name}`;
+    await loadPlugins();
+  } catch (e: any) {
+    errorText.value = `Failed to save chats: ${userError(e.message ?? e, e.message ?? e)}`;
+  }
+}
+
+async function disconnect(name: string) {
+  try {
+    await client.logout(name);
+    successText.value = `${name} disconnected`;
+    expanded.value = null;
+    await loadPlugins();
+  } catch (e: any) {
+    errorText.value = `Failed to disconnect: ${userError(e.message ?? e, e.message ?? e)}`;
+  }
 }
 </script>
 
@@ -108,49 +111,48 @@ async function retryOne(name: string) {
     <AlertBanner v-if="successText" type="success" :message="successText" @dismiss="successText = ''" />
     <AlertBanner v-if="errorText" type="error" :message="errorText" @dismiss="errorText = ''" />
 
-    <div class="flex items-center justify-between mb-4 gap-4">
-      <p v-if="plugins.length" class="text-sm text-gray-500">{{ plugins.length }} integration(s)</p>
-      <div class="relative group">
-        <button
-          @click="runBackfill"
-          :disabled="overallLoading || selectedCount === 0"
-          class="px-4 py-2 bg-[#FF8C4B] text-white text-sm font-medium rounded-md hover:bg-[#e67a3e] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-        >
-          {{ overallLoading ? 'Running...' : 'Refresh' }}
-        </button>
-        <div
-          v-if="selectedCount === 0 && !overallLoading"
-          class="absolute top-full mt-1 right-0 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10"
-        >
-          Select at least one integration
-        </div>
-      </div>
-    </div>
-
     <div class="space-y-4">
-      <div
-        v-for="p in plugins"
-        :key="p.name"
-        class="flex-1"
-      >
+      <div v-for="p in plugins" :key="p.name" class="flex-1">
         <PluginCard
           :name="p.name"
           :connected="p.connected ?? false"
           :connectHref="connectHref(p.name)"
-          :selected="sel(p.name)?.selected ?? false"
+          :status="(p.status as any)"
+          :chats="p.activation?.chats?.map(c => ({ name: c.chatId, id: c.chatId })) ?? []"
+          :activation="null"
+          :errorMessage="p.activation?.errorMessage"
+          :selected="expanded === p.name"
           :selectable="true"
-          :limit="sel(p.name)?.limit"
-          @select="toggle(p.name)"
-          @update:limit="(v: number) => { const s = sel(p.name); if (s) s.limit = v; }"
+          @select="toggleExpand(p.name)"
+          @activate="activate(p.name)"
+          @deactivate="deactivate(p.name)"
+          @configure-chats="toggleExpand(p.name)"
+          @disconnect="disconnect(p.name)"
         />
 
-        <PluginStatus
-          :loading="sel(p.name)?.loading ?? false"
-          :result="sel(p.name)?.result ?? null"
-          :error="sel(p.name)?.error ?? ''"
-          :last-synced="sel(p.name)?.lastSynced ?? null"
-          @retry="retryOne(p.name)"
-        />
+        <div
+          v-if="expanded === p.name"
+          class="border border-t-0 border-gray-200 rounded-b-lg bg-white p-5 -mt-1 mb-4"
+        >
+          <ChatConfigForm
+            v-if="p.status !== 'NOT_CONNECTED' && p.status !== 'ACTIVE'"
+            :phone="''"
+            :chats="p.activation?.chats?.map(c => ({ name: c.chatId, id: c.chatId })) ?? []"
+            @save="(chats) => saveChats(p.name, chats)"
+            @disconnect="disconnect(p.name)"
+          />
+          <MetricsPanel
+            v-else-if="p.status === 'ACTIVE' && p.activation"
+            :activation="{
+              chatCount: p.activation.chats.length,
+              batchCount: p.activation.chats.reduce((s, c) => s + (c.stream.batchesFlushed ?? 0), 0),
+              messageCount: 0,
+              backfillProgress: null,
+              streamUptime: p.activation.chats[0]?.stream.uptime ? p.activation.chats[0].stream.uptime * 1000 : undefined,
+            }"
+          />
+          <p v-else class="text-sm text-gray-400 py-4 text-center">Connect this integration first to configure chats.</p>
+        </div>
       </div>
 
       <div v-if="plugins.length === 0" class="text-sm text-gray-400 py-8 text-center">
