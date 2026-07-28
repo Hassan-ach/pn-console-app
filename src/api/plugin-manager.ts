@@ -113,4 +113,65 @@ export class PluginManagerClient {
         const params = sourcePlugin ? `?sourcePlugin=${sourcePlugin}` : '';
         return api.get<{ count: number }>(`/demo/envelopes/count${params}`);
     }
+
+    async activate(name: string): Promise<ActivateResult> {
+        const res = await api.post<ApiResponse<ActivateResult>>(`/plugins/${name}/activate`);
+        ensureSuccess(res);
+        return res.data!;
+    }
+
+    async deactivate(name: string): Promise<void> {
+        const res = await api.post<ApiResponse<never>>(`/plugins/${name}/deactivate`);
+        ensureSuccess(res);
+    }
+
+    async getActivationStatus(name: string): Promise<PluginActivationStatus> {
+        const res = await api.get<ApiResponse<PluginActivationStatus>>(`/plugins/${name}/status`);
+        ensureSuccess(res);
+        return res.data!;
+    }
+
+    async updateChats(
+        name: string,
+        chats: { name: string; id: string }[],
+    ): Promise<void> {
+        const res = await api.patch<ApiResponse<never>>(`/plugins/${name}/chats`, { chats });
+        ensureSuccess(res);
+    }
+}
+
+export interface ActivateResult {
+    status: string;
+    activatedChats: string[];
+    alreadyActiveChats: string[];
+}
+
+export interface PluginActivationStatus {
+    status: string;
+    activatedAt?: string;
+    errorMessage?: string;
+    chats: ChatWorkerState[];
+}
+
+export interface ChatWorkerState {
+    chatId: string;
+    backfill: { status: string; progress?: number };
+    stream: { status: string; uptime?: number; batchesFlushed?: number };
+    lastCursor?: number;
+}
+
+export interface PluginConfig {
+    name: string;
+    status: 'NOT_CONNECTED' | 'CONNECTED' | 'CONFIGURED' | 'ACTIVATING' | 'ACTIVE' | 'DEACTIVATING' | 'ERROR';
+    chats: { name: string; id: string }[];
+    hasSession: boolean;
+    errorMessage?: string;
+}
+
+export interface ActivationMetrics {
+    chatCount: number;
+    backfillProgress?: { total: number; done: number } | null;
+    streamUptime?: number;
+    batchCount: number;
+    messageCount: number;
 }
