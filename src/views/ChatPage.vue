@@ -9,9 +9,12 @@ const {
     isStreaming,
     error,
     input,
+    isAtBottom,
     loadHistory,
     sendMessage,
     retry,
+    scrollToBottom,
+    handleScroll,
 } = useChat();
 
 marked.setOptions({
@@ -61,56 +64,71 @@ onMounted(() => {
         </div>
 
         <!-- ── Chat Messages ──────────────────────────────────── -->
-        <div
-            id="chat-messages"
-            class="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-3.5 [scrollbar-width:thin] [scrollbar-color:#CECCBF_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#CECCBF] [&::-webkit-scrollbar-thumb]:rounded"
-        >
-            <!-- Loading -->
-            <div v-if="isLoading" class="flex-1 flex items-center justify-center h-full">
-                <div class="w-6 h-6 border-2 border-[#CECCBF] border-t-[#FF4E1A] rounded-full animate-spin"></div>
-            </div>
-
-            <!-- Empty state -->
-            <div v-else-if="messages.length === 0 && !isStreaming" class="flex-1 flex flex-col items-center justify-center gap-3 h-full text-center">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF4E1A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-60">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                <p class="text-sm italic text-[#9E9A90]">Ask me anything about your insights and messages.</p>
-            </div>
-
-            <!-- Messages -->
-            <template v-else>
-                <div
-                    v-for="msg in messages"
-                    :key="msg.id"
-                    :class="msg.role === 'USER' ? 'flex justify-end' : 'flex justify-start'"
-                >
-                    <!-- User bubble -->
-                    <div
-                        v-if="msg.role === 'USER'"
-                        class="max-w-[65%] px-3.5 py-2.5 bg-[#FF4E1A] text-white text-[13px] leading-relaxed"
-                        style="border-radius: 14px 14px 4px 14px"
-                    >
-                        {{ msg.content }}
-                    </div>
-
-                    <!-- AI card -->
-                    <div v-else class="max-w-[75%] w-full">
-                        <!-- Streaming cursor -->
-                        <div
-                            v-if="!msg.content && isStreaming && msg === messages[messages.length - 1]"
-                            class="inline-block w-2 h-4 bg-[#FF4E1A] rounded-sm animate-pulse"
-                        ></div>
-                        <!-- Rendered markdown -->
-                        <div
-                            v-else-if="msg.content"
-                            class="bg-white border border-[#E4E2DC] rounded-[10px] px-4 py-3.5 text-[13px] text-[#5A564E] leading-[1.65] ai-content"
-                            v-html="renderMarkdown(msg.content)"
-                        ></div>
-                    </div>
+        <div class="flex-1 relative overflow-hidden">
+            <div
+                id="chat-messages"
+                @scroll="handleScroll"
+                class="absolute inset-0 overflow-y-auto px-5 py-5 flex flex-col gap-3.5 scroll-smooth [scrollbar-width:thin] [scrollbar-color:#CECCBF_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#CECCBF] [&::-webkit-scrollbar-thumb]:rounded"
+            >
+                <!-- Loading -->
+                <div v-if="isLoading" class="flex-1 flex items-center justify-center h-full">
+                    <div class="w-6 h-6 border-2 border-[#CECCBF] border-t-[#FF4E1A] rounded-full animate-spin"></div>
                 </div>
-                <div id="chat-bottom"></div>
-            </template>
+
+                <!-- Empty state -->
+                <div v-else-if="messages.length === 0 && !isStreaming" class="flex-1 flex flex-col items-center justify-center gap-3 h-full text-center">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF4E1A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-60">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                    <p class="text-sm italic text-[#9E9A90]">Ask me anything about your insights and messages.</p>
+                </div>
+
+                <!-- Messages -->
+                <template v-else>
+                    <div
+                        v-for="msg in messages"
+                        :key="msg.id"
+                        :class="msg.role === 'USER' ? 'flex justify-end' : 'flex justify-start'"
+                    >
+                        <!-- User bubble -->
+                        <div
+                            v-if="msg.role === 'USER'"
+                            class="max-w-[65%] px-3.5 py-2.5 bg-[#FF4E1A] text-white text-[13px] leading-relaxed"
+                            style="border-radius: 14px 14px 4px 14px"
+                        >
+                            {{ msg.content }}
+                        </div>
+
+                        <!-- AI card -->
+                        <div v-else class="max-w-[75%] w-full">
+                            <!-- Streaming cursor -->
+                            <div
+                                v-if="!msg.content && isStreaming && msg === messages[messages.length - 1]"
+                                class="inline-block w-2 h-4 bg-[#FF4E1A] rounded-sm animate-pulse"
+                            ></div>
+                            <!-- Rendered markdown -->
+                            <div
+                                v-else-if="msg.content"
+                                class="bg-white border border-[#E4E2DC] rounded-[10px] px-4 py-3.5 text-[13px] text-[#5A564E] leading-[1.65] ai-content"
+                                v-html="renderMarkdown(msg.content)"
+                            ></div>
+                        </div>
+                    </div>
+                    <div id="chat-bottom"></div>
+                </template>
+            </div>
+
+            <!-- Scroll-to-bottom button (fixed, outside scroll container) -->
+            <button
+                v-show="messages.length > 0 && !isAtBottom"
+                @click="scrollToBottom"
+                type="button"
+                class="group absolute bottom-4 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-white border border-[#E4E2DC] shadow-md hover:shadow-lg hover:border-[#CECCBF] transition-all duration-200 cursor-pointer z-10"
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E9A90" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="group-hover:stroke-[#FF4E1A] transition-colors duration-200">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </button>
         </div>
 
         <!-- ── Error bar ──────────────────────────────────────── -->

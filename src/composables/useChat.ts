@@ -9,6 +9,7 @@ export function useChat() {
     const error = ref<string | null>(null);
     const input = ref('');
     const lastUserMessage = ref('');
+    const isAtBottom = ref(true);
 
     async function loadHistory() {
         isLoading.value = true;
@@ -57,7 +58,9 @@ export function useChat() {
             onToken(token: string) {
                 streamingContent.value += token;
                 assistantMessage.content = streamingContent.value;
-                nextTick(() => scrollToBottom());
+                if (isAtBottom.value) {
+                    nextTick(() => scrollToBottom());
+                }
             },
             onDone() {
                 assistantMessage.content = streamingContent.value;
@@ -89,6 +92,18 @@ export function useChat() {
         }
     }
 
+    function handleScroll() {
+        const container = document.getElementById('chat-messages');
+        if (container) {
+            const threshold = 100;
+            isAtBottom.value =
+                container.scrollHeight -
+                    container.scrollTop -
+                    container.clientHeight <
+                threshold;
+        }
+    }
+
     return {
         messages,
         isLoading,
@@ -96,8 +111,11 @@ export function useChat() {
         streamingContent,
         error,
         input,
+        isAtBottom,
         loadHistory,
         sendMessage,
         retry,
+        scrollToBottom,
+        handleScroll,
     };
 }
