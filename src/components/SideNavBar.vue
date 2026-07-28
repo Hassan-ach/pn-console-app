@@ -153,7 +153,7 @@ onUnmounted(() => {
         href="#settings"
         @click.prevent="navigate('settings')"
         :class="
-          currentPage === 'settings' || currentPage === 'settings-telegram'
+          currentPage === 'settings'
             ? 'bg-[#FF8C4B]/10 text-[#FF8C4B]'
             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
         "

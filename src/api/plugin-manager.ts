@@ -13,10 +13,6 @@ export interface PluginInfo {
     hasSession?: boolean;
 }
 
-export interface BulkInsertResult {
-    inserted: number;
-}
-
 function ensureSuccess<T>(res: ApiResponse<T>): void {
     if (!res.success) throw new Error(res.message);
 }
@@ -89,24 +85,6 @@ export class PluginManagerClient {
         );
         ensureSuccess(res);
         return res.message;
-    }
-
-    async backfill(
-        items: { plugin: string; limit: number }[],
-    ): Promise<BulkInsertResult> {
-        const res = await api.post<ApiResponse<BulkInsertResult>>(
-            '/ingestion/backfill',
-            items,
-        );
-        if (!res.success) {
-            const data = res.data as
-                { errors?: { message: string }[] } | undefined;
-            const detail = data?.errors?.length
-                ? data.errors[0].message
-                : res.message;
-            throw new Error(detail);
-        }
-        return res.data!;
     }
 
     async getEnvelopeCount(sourcePlugin?: string): Promise<{ count: number }> {
