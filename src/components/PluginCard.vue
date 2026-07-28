@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import type { ActivationMetrics } from '../api/plugin-manager';
+
 defineProps<{
   name: string;
   connected: boolean;
   phone?: string;
   loading?: boolean;
   connectHref?: string;
+  status: 'NOT_CONNECTED' | 'CONNECTED' | 'CONFIGURED' | 'ACTIVATING' | 'ACTIVE' | 'DEACTIVATING' | 'ERROR';
+  chats?: { name: string; id: string }[];
+  activation?: ActivationMetrics | null;
+  errorMessage?: string;
   selected?: boolean;
   selectable?: boolean;
   limit?: number;
@@ -14,11 +20,15 @@ const emit = defineEmits<{
   connect: [];
   select: [];
   'update:limit': [value: number];
+  activate: [];
+  deactivate: [];
+  'configure-chats': [];
+  disconnect: [];
 }>();
 </script>
 
 <template>
-  <div 
+  <div
     class="rounded-lg border p-5 transition-colors"
     :class="[
       selected ? 'border-[#FF8C4B] bg-[#FF8C4B]/5' : 'border-gray-200 bg-white',
@@ -73,32 +83,113 @@ const emit = defineEmits<{
             <p v-if="phone" class="text-sm text-gray-500">{{ phone }}</p>
           </template>
           <p v-else class="text-sm text-gray-500">Not connected</p>
+          <div v-if="chats && chats.length" class="flex flex-wrap gap-1.5 mt-1.5">
+            <span
+              v-for="chat in chats"
+              :key="chat.id"
+              class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full"
+            >
+              {{ chat.name || chat.id }}
+            </span>
+          </div>
         </div>
       </div>
-      <div class="shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
         <span
-          v-if="loading"
-          class="inline-block w-3 h-3 rounded-full bg-gray-300 animate-pulse"
+          v-if="status === 'ACTIVATING' || status === 'DEACTIVATING'"
+          class="inline-block w-3 h-3 rounded-full bg-yellow-400 animate-pulse"
         />
         <span
-          v-else-if="connected"
+          v-else-if="status === 'ACTIVE'"
           class="inline-block w-3 h-3 rounded-full bg-green-500"
         />
-        <a
-          v-else-if="connectHref"
-          :href="connectHref"
-          class="inline-block px-4 py-2 text-sm font-medium text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] transition-colors"
-        >
-          Connect
-        </a>
-        <button
+        <span
+          v-else-if="status === 'ERROR'"
+          class="inline-block w-3 h-3 rounded-full bg-red-500"
+        />
+        <span
+          v-else-if="status === 'CONFIGURED'"
+          class="inline-block w-3 h-3 rounded-full bg-gray-400"
+        />
+        <span
+          v-else-if="status === 'CONNECTED'"
+          class="inline-block w-3 h-3 rounded-full bg-blue-400"
+        />
+        <span
           v-else
-          @click="emit('connect')"
-          class="inline-block px-4 py-2 text-sm font-medium text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] transition-colors"
-        >
-          Connect
-        </button>
+          class="inline-block w-3 h-3 rounded-full bg-gray-300"
+        />
+        <p v-if="errorMessage && status === 'ERROR'" class="text-xs text-red-600 max-w-40 truncate" :title="errorMessage">
+          {{ errorMessage }}
+        </p>
       </div>
+    </div>
+    <div v-if="status !== 'ACTIVATING' && status !== 'DEACTIVATING'" class="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100">
+      <button
+        v-if="status === 'NOT_CONNECTED'"
+        type="button"
+        :disabled="!connectHref && loading"
+        class="px-4 py-2 text-sm font-medium text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] transition-colors cursor-pointer disabled:opacity-50"
+        @click.stop="emit('connect')"
+      >
+        Connect
+      </button>
+
+      <button
+        v-if="status === 'CONNECTED' || status === 'CONFIGURED'"
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] transition-colors cursor-pointer"
+        @click.stop="emit('configure-chats')"
+      >
+        Configure Chats
+      </button>
+
+      <button
+        v-if="status === 'CONFIGURED'"
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors cursor-pointer"
+        @click.stop="emit('activate')"
+      >
+        Activate
+      </button>
+
+      <button
+        v-if="status === 'ERROR'"
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] transition-colors cursor-pointer"
+        @click.stop="emit('activate')"
+      >
+        Retry
+      </button>
+
+      <button
+        v-if="status === 'ACTIVE'"
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors cursor-pointer"
+        @click.stop="emit('deactivate')"
+      >
+        Deactivate
+      </button>
+
+      <button
+        v-if="status !== 'NOT_CONNECTED'"
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+        :class="{ 'opacity-50 cursor-not-allowed': status === 'ACTIVE' }"
+        :disabled="status === 'ACTIVE'"
+        @click.stop="emit('disconnect')"
+      >
+        Disconnect
+      </button>
+    </div>
+    <div v-else class="flex items-center justify-center mt-4 pt-3 border-t border-gray-100">
+      <span class="inline-flex items-center gap-2 text-sm text-yellow-600">
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        {{ status === 'ACTIVATING' ? 'Activating...' : 'Deactivating...' }}
+      </span>
     </div>
   </div>
 </template>
