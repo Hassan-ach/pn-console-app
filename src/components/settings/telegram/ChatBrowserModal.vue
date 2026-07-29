@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { fetchTelegramDialogs, type DialogEntry } from '../../../composables/useTelegramDialogs';
-import type { ChatEntry } from './ChatConfigForm.vue';
+
+export interface ChatEntry {
+  id: string;
+  name: string;
+}
 
 const props = defineProps<{
   open: boolean;

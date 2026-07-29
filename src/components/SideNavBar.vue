@@ -81,29 +81,6 @@ onUnmounted(() => {
       </a>
 
       <a
-        href="#ingestion"
-        @click.prevent="navigate('ingestion')"
-        :class="
-          currentPage === 'ingestion'
-            ? 'bg-[#FF8C4B]/10 text-[#FF8C4B]'
-            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-        "
-        class="relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
-        :title="isCollapsed ? 'Ingestion' : ''"
-      >
-        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-        </svg>
-        <span v-if="!isCollapsed" class="whitespace-nowrap">Ingestion</span>
-        <span
-          v-if="isCollapsed"
-          class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50"
-        >
-          Ingestion
-        </span>
-      </a>
-
-      <a
         href="#jobs"
         @click.prevent="navigate('jobs')"
         :class="

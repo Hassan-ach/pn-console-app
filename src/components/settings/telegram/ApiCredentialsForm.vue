@@ -63,9 +63,10 @@ async function onSubmit() {
       <label class="block text-sm font-medium text-gray-700 mb-1">apiId</label>
       <input
         v-model="apiId"
-        type="number"
+        type="text"
+        inputmode="numeric"
         placeholder="12345678"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF8C4B]/40 focus:border-[#FF8C4B]"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF8C4B]/40 focus:border-[#FF8C4B] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
     </div>
 
@@ -94,7 +95,7 @@ async function onSubmit() {
     <button
       @click="onSubmit"
       :disabled="busy"
-      class="w-full px-4 py-2 text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+      class="w-full px-4 py-2 text-white bg-[#FF8C4B] rounded-lg hover:bg-[#e67e3f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
     >
       {{ busy ? 'Sending code...' : 'Send Code' }}
     </button>

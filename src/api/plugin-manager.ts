@@ -20,6 +20,10 @@ function ensureSuccess<T>(res: ApiResponse<T>): void {
 let listCache: { data: PluginInfo[]; ts: number } | null = null;
 const LIST_TTL = 10_000;
 
+function clearListCache() {
+  listCache = null;
+}
+
 export class PluginManagerClient {
     async list(): Promise<PluginInfo[]> {
         if (listCache && Date.now() - listCache.ts < LIST_TTL)
@@ -41,6 +45,7 @@ export class PluginManagerClient {
             `/plugins/${name}/logout`,
         );
         ensureSuccess(res);
+        clearListCache();
         return res.message;
     }
 
@@ -52,6 +57,7 @@ export class PluginManagerClient {
             ApiResponse<{ platformUserId: string; platformUsername: string }>
         >(`/plugins/${name}/login`, { config });
         ensureSuccess(res);
+        clearListCache();
         return res.data!;
     }
 
@@ -64,6 +70,7 @@ export class PluginManagerClient {
             { config },
         );
         ensureSuccess(res);
+        clearListCache();
         return res.message;
     }
 
@@ -84,6 +91,7 @@ export class PluginManagerClient {
             { config },
         );
         ensureSuccess(res);
+        clearListCache();
         return res.message;
     }
 
@@ -93,18 +101,26 @@ export class PluginManagerClient {
     }
 
     async activate(name: string): Promise<ActivateResult> {
-        const res = await api.post<ApiResponse<ActivateResult>>(`/plugins/${name}/activate`);
+        const res = await api.post<ApiResponse<ActivateResult>>(
+            `/plugins/${name}/activate`,
+        );
         ensureSuccess(res);
+        clearListCache();
         return res.data!;
     }
 
     async deactivate(name: string): Promise<void> {
-        const res = await api.post<ApiResponse<never>>(`/plugins/${name}/deactivate`);
+        const res = await api.post<ApiResponse<never>>(
+            `/plugins/${name}/deactivate`,
+        );
         ensureSuccess(res);
+        clearListCache();
     }
 
     async getActivationStatus(name: string): Promise<PluginActivationStatus> {
-        const res = await api.get<ApiResponse<PluginActivationStatus>>(`/plugins/${name}/status`);
+        const res = await api.get<ApiResponse<PluginActivationStatus>>(
+            `/plugins/${name}/status`,
+        );
         ensureSuccess(res);
         return res.data!;
     }
@@ -113,10 +129,40 @@ export class PluginManagerClient {
         name: string,
         chats: { name: string; id: string }[],
     ): Promise<void> {
-        const res = await api.patch<ApiResponse<never>>(`/plugins/${name}/chats`, { chats });
+        const res = await api.patch<ApiResponse<never>>(
+            `/plugins/${name}/chats`,
+            { chats },
+        );
         ensureSuccess(res);
     }
+
+    async getConfigSchema(name: string): Promise<ConfigFieldSchema[]> {
+        const res = await api.get<ApiResponse<ConfigFieldSchema[]>>(
+            `/plugins/${name}/config-schema`,
+        );
+        ensureSuccess(res);
+        return res.data ?? [];
+    }
+
+    async getActivationRequirements(
+        name: string,
+    ): Promise<ActivationRequirementResult[]> {
+        const res = await api.get<ApiResponse<ActivationRequirementResult[]>>(
+            `/plugins/${name}/activation-requirements`,
+        );
+        ensureSuccess(res);
+        return res.data ?? [];
+    }
 }
+
+export type PluginStatus =
+    | 'NOT_CONNECTED'
+    | 'CONNECTED'
+    | 'CONFIGURED'
+    | 'ACTIVATING'
+    | 'ACTIVE'
+    | 'DEACTIVATING'
+    | 'ERROR';
 
 export interface ActivateResult {
     status: string;
@@ -124,32 +170,48 @@ export interface ActivateResult {
     alreadyActiveChats: string[];
 }
 
+export interface WorkerState {
+    backfill: 'IDLE' | 'RUNNING' | 'COMPLETED';
+    stream: 'IDLE' | 'LISTENING' | 'STOPPED';
+    startedAt: string;
+    backfillProgress?: { inserted: number; ids: string[] };
+    flushes: number;
+}
+
 export interface PluginActivationStatus {
     status: string;
     activatedAt?: string;
     errorMessage?: string;
-    chats: ChatWorkerState[];
-}
-
-export interface ChatWorkerState {
-    chatId: string;
-    backfill: { status: string; progress?: number };
-    stream: { status: string; uptime?: number; batchesFlushed?: number };
-    lastCursor?: number;
+    platformUsername?: string;
+    platformUserId?: string;
+    chats: {
+        chatId: string;
+        name?: string;
+        worker: WorkerState | null;
+        cursor: number | null;
+    }[];
 }
 
 export interface PluginConfig {
     name: string;
-    status: 'NOT_CONNECTED' | 'CONNECTED' | 'CONFIGURED' | 'ACTIVATING' | 'ACTIVE' | 'DEACTIVATING' | 'ERROR';
+    status: PluginStatus;
     chats: { name: string; id: string }[];
     hasSession: boolean;
     errorMessage?: string;
 }
 
-export interface ActivationMetrics {
-    chatCount: number;
-    backfillProgress?: { total: number; done: number } | null;
-    streamUptime?: number;
-    batchCount: number;
-    messageCount: number;
+export interface ConfigFieldSchema {
+    key: string;
+    label: string;
+    type: 'text' | 'number' | 'select' | 'checkbox-list' | 'boolean';
+    required?: boolean;
+    options?: { label: string; value: string }[];
+    placeholder?: string;
+    description?: string;
+}
+
+export interface ActivationRequirementResult {
+    field: string;
+    message: string;
+    met: boolean;
 }

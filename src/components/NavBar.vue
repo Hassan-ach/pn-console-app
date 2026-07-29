@@ -42,18 +42,6 @@ onUnmounted(() => {
         >
         <span class="text-gray-300">|</span>
         <a
-          href="#ingestion"
-          @click.prevent="navigate('ingestion')"
-          :class="
-            currentPage === 'ingestion'
-              ? 'text-[#FF8C4B] font-semibold'
-              : 'text-gray-400 hover:text-gray-600'
-          "
-          class="px-3 py-1.5 text-sm transition-colors"
-          >Ingestion</a
-        >
-        <span class="text-gray-300">|</span>
-        <a
           href="#insights"
           @click.prevent="navigate('insights')"
           :class="
