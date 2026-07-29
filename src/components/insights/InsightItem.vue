@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { InsightSummary, InsightType, InsightActionStatus } from '../../api/insights-api';
-import { STATUS_LABELS, STATUS_COLORS, VALID_ACTIONS } from '../../api/insights-api';
+import { STATUS_LABELS, STATUS_COLORS, VALID_ACTIONS, getPriorityColor, formatDeadline } from '../../api/insights-api';
 
 const props = defineProps<{
   insight: InsightSummary;
@@ -49,6 +49,13 @@ const preview = computed(() => {
   return text.length > 140 ? `${text.slice(0, 140)}…` : text;
 });
 
+const priorityColor = computed(() => getPriorityColor(props.insight.priority));
+
+const deadlineText = computed(() => {
+  if (props.insight.status !== 'PENDING') return null;
+  return formatDeadline(props.insight.deadline);
+});
+
 function onStatusChange(event: Event) {
   const target = event.target as HTMLSelectElement;
   const newStatus = target.value as InsightActionStatus;
@@ -79,8 +86,24 @@ function onStatusChange(event: Event) {
           >
             {{ meta.label }}
           </span>
+          <span
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+            :class="priorityColor"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            {{ insight.priority ?? 0 }}/10
+          </span>
         </span>
         <span class="text-[14.5px] leading-relaxed text-stone-800">{{ preview }}</span>
+        <span
+          v-if="deadlineText"
+          class="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          {{ deadlineText }}
+        </span>
       </span>
     </button>
     <span class="mr-2 flex flex-shrink-0 items-center">

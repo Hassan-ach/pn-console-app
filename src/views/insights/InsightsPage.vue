@@ -55,7 +55,14 @@ async function loadInsights() {
     const type = activeMainTab.value === 'OVERVIEW' ? undefined : activeMainTab.value;
     const status = activeStatus.value === 'ALL' ? undefined : activeStatus.value;
     const limit = activeMainTab.value === 'OVERVIEW' ? 5 : undefined;
-    insights.value = await insightsApi.list(type, status, limit);
+    const items = await insightsApi.list(type, status, limit);
+    items.sort((a, b) => {
+      const pa = a.priority ?? -1;
+      const pb = b.priority ?? -1;
+      if (pb !== pa) return pb - pa;
+      return b.version - a.version;
+    });
+    insights.value = items;
   } catch (err) {
     loadError.value = err instanceof Error ? err.message : 'Could not load insights.';
   } finally {
