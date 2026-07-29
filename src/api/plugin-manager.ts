@@ -21,7 +21,7 @@ let listCache: { data: PluginInfo[]; ts: number } | null = null;
 const LIST_TTL = 10_000;
 
 function clearListCache() {
-  listCache = null;
+    listCache = null;
 }
 
 export class PluginManagerClient {

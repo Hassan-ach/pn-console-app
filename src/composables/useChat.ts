@@ -59,7 +59,7 @@ export function useChat() {
                 streamingContent.value += token;
                 assistantMessage.content = streamingContent.value;
                 if (isAtBottom.value) {
-                    nextTick(() => scrollToBottom());
+                    void nextTick(() => scrollToBottom());
                 }
             },
             onDone() {
