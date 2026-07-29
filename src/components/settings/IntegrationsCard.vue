@@ -1,6 +1,6 @@
 <template>
-  <a
-    href="#integrations"
+  <router-link
+    to="/settings-telegram"
     class="block bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all"
   >
     <div class="flex items-center justify-between">
@@ -24,5 +24,5 @@
         />
       </svg>
     </div>
-  </a>
+  </router-link>
 </template>

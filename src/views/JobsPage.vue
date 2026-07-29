@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { jobsApi, type Job, type JobStatus } from "../api/jobs";
 import JobCard from "../components/home/JobCard.vue";
+
+const route = useRoute();
 
 const jobs = ref<Job[]>([]);
 const loading = ref(true);
@@ -28,6 +31,10 @@ async function fetchJobs() {
 }
 
 onMounted(() => {
+  const statusParam = route.query.status as string | undefined;
+  if (statusParam && (['PENDING', 'RUNNING', 'COMPLETED', 'FAILED'] as JobStatus[]).includes(statusParam as JobStatus)) {
+    activeTab.value = statusParam as JobStatus;
+  }
   fetchJobs();
   pollingInterval = setInterval(fetchJobs, 3000);
 });
@@ -41,7 +48,12 @@ watch(activeTab, fetchJobs);
 
 <template>
   <div class="max-w-5xl mx-auto">
-    <h1 class="text-2xl font-bold text-gray-900 mb-6">Jobs</h1>
+    <header class="mb-7">
+      <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-stone-500">
+        Jobs
+      </p>
+      <h1 class="text-[26px] font-semibold tracking-tight text-stone-900">Monitor your tasks</h1>
+    </header>
 
     <div class="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
       <button

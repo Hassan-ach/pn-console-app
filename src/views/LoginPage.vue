@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import { authApi } from "../api/auth";
+
+const router = useRouter();
 
 const email = ref("");
 const password = ref("");
@@ -161,7 +164,7 @@ async function handleLogin() {
       password: password.value,
     });
     sessionStorage.setItem("access_token", res.access_token);
-    window.location.hash = "#dashboard";
+    router.push("/home");
   } catch (e: any) {
     error.value = e.message ?? "Something went wrong. Please try again.";
   } finally {
@@ -263,10 +266,10 @@ async function handleLogin() {
           </div>
 
           <div class="flex items-center justify-between">
-            <a
-              href="#forgot-password"
+            <router-link
+              to="/forgot-password"
               class="text-[13px] text-gray-500 hover:text-gray-700 font-medium cursor-pointer"
-              >Forgot password?</a
+              >Forgot password?</router-link
             >
           </div>
 
@@ -290,10 +293,10 @@ async function handleLogin() {
 
         <p class="text-center text-[13px] text-gray-500 mt-6">
           Don't have an account?
-          <a
-            href="#signup"
+          <router-link
+            to="/signup"
             class="text-[#FF8C4B] hover:text-[#F27D3A] font-bold cursor-pointer"
-            >Sign up</a
+            >Sign up</router-link
           >
         </p>
 

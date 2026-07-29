@@ -52,9 +52,11 @@ const preview = computed(() => {
 const priorityColor = computed(() => getPriorityColor(props.insight.priority));
 
 const deadlineText = computed(() => {
-  if (props.insight.status !== 'PENDING') return null;
+  if (!props.insight.deadline) return 'No deadline set';
   return formatDeadline(props.insight.deadline);
 });
+
+const hasDeadline = computed(() => !!props.insight.deadline);
 
 function onStatusChange(event: Event) {
   const target = event.target as HTMLSelectElement;
@@ -98,8 +100,8 @@ function onStatusChange(event: Event) {
         </span>
         <span class="text-[14.5px] leading-relaxed text-stone-800">{{ preview }}</span>
         <span
-          v-if="deadlineText"
-          class="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600"
+          class="inline-flex items-center gap-1 text-[11px] font-semibold"
+          :class="hasDeadline ? 'text-red-600' : 'text-stone-400'"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           {{ deadlineText }}

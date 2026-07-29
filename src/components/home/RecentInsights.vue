@@ -16,12 +16,12 @@ const TYPE_META: Record<InsightType, { label: string; bg: string; text: string }
   <div>
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold text-gray-900">Latest Insights</h2>
-      <a
-        href="#insights"
+      <router-link
+        to="/insights"
         class="text-sm text-[#FF8C4B] hover:text-[#F27D3A] font-medium transition-colors"
       >
         View all
-      </a>
+      </router-link>
     </div>
     <div v-if="insights.length" class="space-y-3">
       <div

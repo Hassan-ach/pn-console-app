@@ -234,8 +234,8 @@ async function handleDisconnect() {
 <template>
   <div class="max-w-4xl mx-auto">
     <nav class="text-sm text-gray-400 mb-6 flex items-center gap-2">
-      <a href="#settings" class="hover:text-gray-600 transition-colors"
-        >Settings</a
+      <router-link to="/settings" class="hover:text-gray-600 transition-colors"
+        >Settings</router-link
       >
       <span>/</span>
       <span class="text-[#FF8C4B] font-medium">Integrations</span>

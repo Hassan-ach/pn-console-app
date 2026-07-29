@@ -76,9 +76,11 @@ const statusColor = computed(() => detail.value ? STATUS_COLORS[detail.value.sta
 
 const priorityColor = computed(() => getPriorityColor(detail.value?.priority ?? null));
 const deadlineText = computed(() => {
-  if (!detail.value || detail.value.status !== 'PENDING') return null;
+  if (!detail.value?.deadline) return 'No deadline set';
   return formatDeadline(detail.value.deadline);
 });
+
+const hasDeadline = computed(() => !!detail.value?.deadline);
 
 const priorityOverride = ref<number | null>(null);
 const priorityLoading = ref(false);
@@ -223,7 +225,7 @@ watch(
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
-      Back to insights
+      {{ route.query.from === 'home' ? 'Back to home' : 'Back to insights' }}
     </button>
 
     <div v-if="isLoading" class="rounded-xl border border-dashed border-stone-300 bg-white px-4 py-10 text-center text-sm text-stone-500">
@@ -313,8 +315,8 @@ watch(
           Priority: {{ detail.priority }}
         </span>
         <span
-          v-if="deadlineText"
-          class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-[12px] font-semibold text-red-600"
+          class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold"
+          :class="hasDeadline ? 'bg-red-50 text-red-600' : 'bg-stone-100 text-stone-500'"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -508,10 +510,10 @@ watch(
                   P{{ versionDetails[v.id].priority }}
                 </span>
                 <span
-                  v-if="versionDetails[v.id].deadline && versionDetails[v.id].status === 'PENDING'"
-                  class="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600"
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                  :class="versionDetails[v.id].deadline ? 'bg-red-50 text-red-600' : 'bg-stone-100 text-stone-500'"
                 >
-                  {{ formatDeadline(versionDetails[v.id].deadline) }}
+                  {{ versionDetails[v.id].deadline ? formatDeadline(versionDetails[v.id].deadline) : 'No deadline set' }}
                 </span>
               </div>
             </div>

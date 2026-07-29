@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import InsightItem from '../../components/insights/InsightItem.vue';
 import {
   insightsApi,
@@ -36,6 +36,7 @@ const STATUS_LABELS_SHORT: Record<InsightActionStatus, string> = {
 const mainTabs: MainTab[] = ['OVERVIEW', ...INSIGHT_TYPES];
 
 const router = useRouter();
+const route = useRoute();
 
 const activeMainTab = ref<MainTab>('OVERVIEW');
 const activeStatus = ref<InsightActionStatus | 'ALL'>('ALL');
@@ -106,11 +107,17 @@ function handleStatusChange(id: string, newStatus: InsightActionStatus) {
 
 watch([activeMainTab, activeStatus], loadInsights);
 
-onMounted(loadInsights);
+onMounted(() => {
+  const typeParam = route.query.type as string | undefined;
+  if (typeParam && INSIGHT_TYPES.includes(typeParam as InsightType)) {
+    activeMainTab.value = typeParam as InsightType;
+  }
+  loadInsights();
+});
 </script>
 
 <template>
-  <div class="mx-auto w-full bg-[#faf9f6] px-6 pb-16 pt-10 font-sans text-stone-900">
+  <div class="max-w-5xl mx-auto">
     <header class="mb-7">
       <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-stone-500">
         Insights
@@ -119,33 +126,33 @@ onMounted(loadInsights);
     </header>
 
     <!-- Main Tabs -->
-    <nav class="mb-1 flex gap-0 border-b border-stone-200" role="tablist" aria-label="Filter insights by type">
+    <div class="flex gap-1 mb-6 bg-stone-100 p-1 rounded-lg w-fit" role="tablist" aria-label="Filter insights by type">
       <button
         v-for="tab in mainTabs"
         :key="tab"
         type="button"
         role="tab"
-        class="mr-5 flex items-center gap-1.5 border-b-2 border-transparent py-2.5 text-sm font-medium text-stone-500 transition-colors hover:text-stone-900"
-        :class="activeMainTab === tab ? 'border-orange-600 font-semibold text-stone-900' : ''"
+        class="px-4 py-1.5 text-sm font-medium rounded-md transition-all cursor-pointer"
+        :class="activeMainTab === tab ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'"
         :aria-selected="activeMainTab === tab"
         @click="selectMainTab(tab)"
       >
         {{ MAIN_TAB_LABELS[tab] }}
       </button>
-    </nav>
+    </div>
 
     <!-- Sub Tabs (Status Filters) -->
-    <nav
+    <div
       v-if="subTabs.length > 0"
-      class="mb-4 flex gap-0 border-b border-stone-100"
+      class="flex gap-1 mb-6 bg-stone-100 p-1 rounded-lg w-fit"
       role="tablist"
       :aria-label="`Filter ${MAIN_TAB_LABELS[activeMainTab]} by status`"
     >
       <button
         type="button"
         role="tab"
-        class="mr-3 border-b border-transparent py-2 text-[13px] font-medium text-stone-400 transition-colors hover:text-stone-700"
-        :class="activeStatus === 'ALL' ? 'border-stone-900 font-semibold text-stone-900' : ''"
+        class="px-3 py-1 text-[13px] font-medium rounded-md transition-all cursor-pointer"
+        :class="activeStatus === 'ALL' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-700'"
         :aria-selected="activeStatus === 'ALL'"
         @click="selectStatus('ALL')"
       >
@@ -156,14 +163,14 @@ onMounted(loadInsights);
         :key="status"
         type="button"
         role="tab"
-        class="mr-3 border-b border-transparent py-2 text-[13px] font-medium text-stone-400 transition-colors hover:text-stone-700"
-        :class="activeStatus === status ? 'border-stone-900 font-semibold text-stone-900' : ''"
+        class="px-3 py-1 text-[13px] font-medium rounded-md transition-all cursor-pointer"
+        :class="activeStatus === status ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-700'"
         :aria-selected="activeStatus === status"
         @click="selectStatus(status)"
       >
         {{ STATUS_LABELS_SHORT[status] }}
       </button>
-    </nav>
+    </div>
 
     <section class="flex flex-col gap-2.5">
       <div
