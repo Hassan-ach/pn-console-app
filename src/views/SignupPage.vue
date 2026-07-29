@@ -2,6 +2,7 @@
 import { ref, reactive, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "../api/auth";
+import AlertBanner from "../components/AlertBanner.vue";
 
 const router = useRouter();
 
@@ -417,12 +418,7 @@ async function handleSignup() {
             >
           </p>
 
-          <p
-            v-if="error"
-            class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"
-          >
-            {{ error }}
-          </p>
+          <AlertBanner type="error" :message="error" @dismiss="error = ''" />
         </template>
 
         <div v-else class="text-center py-12">

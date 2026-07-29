@@ -240,12 +240,7 @@ function handleClose() {
             </template>
           </div>
 
-          <AlertBanner
-            v-if="error"
-            type="error"
-            :message="error"
-            @dismiss="error = ''"
-          />
+          <AlertBanner type="error" :message="error" @dismiss="error = ''" />
 
           <!-- Step 1: Credentials / Phone -->
           <div v-if="wizardStep === 'credentials'">

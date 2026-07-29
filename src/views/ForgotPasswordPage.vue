@@ -2,6 +2,7 @@
 import { ref, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "../api/auth";
+import AlertBanner from "../components/AlertBanner.vue";
 
 const router = useRouter();
 
@@ -137,12 +138,7 @@ function startPolling() {
             </button>
           </form>
 
-          <p
-            v-if="error"
-            class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"
-          >
-            {{ error }}
-          </p>
+          <AlertBanner type="error" :message="error" @dismiss="error = ''" />
 
           <p class="text-center text-[13px] text-gray-500 mt-6">
             <router-link
