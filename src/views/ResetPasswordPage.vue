@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { authApi } from "../api/auth";
+import AlertBanner from "../components/AlertBanner.vue";
 
 const hashParts = window.location.hash.split("?");
 const params = new URLSearchParams(hashParts[1] || "");
@@ -202,12 +203,7 @@ async function handleResetPassword() {
             </button>
           </form>
 
-          <p
-            v-if="error"
-            class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"
-          >
-            {{ error }}
-          </p>
+          <AlertBanner type="error" :message="error" @dismiss="error = ''" />
 
           <p class="text-center text-[13px] text-gray-500 mt-6">
             <a

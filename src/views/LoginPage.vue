@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
 import { authApi } from "../api/auth";
+import AlertBanner from "../components/AlertBanner.vue";
 
 const email = ref("");
 const password = ref("");
@@ -297,12 +298,7 @@ async function handleLogin() {
           >
         </p>
 
-        <p
-          v-if="error"
-          class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"
-        >
-          {{ error }}
-        </p>
+        <AlertBanner type="error" :message="error" @dismiss="error = ''" />
       </div>
     </section>
 
