@@ -151,8 +151,12 @@ describe('chatApi', () => {
             );
         });
 
-        it('calls onError on malformed JSON in stream', async () => {
-            const events = ['data: {not-json}\n\n'];
+        it('skips malformed JSON line without calling onError', async () => {
+            const events = [
+                'data: {not-json}\n\n',
+                sseEvent({ type: 'token', content: 'valid' }),
+                sseEvent({ type: 'done' }),
+            ];
             vi.mocked(api.stream).mockResolvedValue(createMockStream(events));
 
             const onToken = vi.fn();
@@ -165,8 +169,9 @@ describe('chatApi', () => {
                 onError,
             });
 
-            expect(onError).toHaveBeenCalledTimes(1);
-            expect(onToken).not.toHaveBeenCalled();
+            expect(onError).not.toHaveBeenCalled();
+            expect(onToken).toHaveBeenCalledWith('valid');
+            expect(onDone).toHaveBeenCalledTimes(1);
         });
 
         it('calls onError with error type from stream', async () => {
@@ -187,6 +192,27 @@ describe('chatApi', () => {
             expect(onError).toHaveBeenCalledWith(
                 expect.objectContaining({ message: 'LLM failed' }),
             );
+        });
+
+        it('does not call onError when stream is aborted', async () => {
+            const abortController = new AbortController();
+            vi.mocked(api.stream).mockRejectedValue(
+                new DOMException('The operation was aborted', 'AbortError'),
+            );
+
+            const onToken = vi.fn();
+            const onDone = vi.fn();
+            const onError = vi.fn();
+
+            await chatApi.sendMessageStream(
+                'Hi',
+                { onToken, onDone, onError },
+                abortController.signal,
+            );
+
+            expect(onError).not.toHaveBeenCalled();
+            expect(onToken).not.toHaveBeenCalled();
+            expect(onDone).not.toHaveBeenCalled();
         });
     });
 });

@@ -14,19 +14,34 @@ export type StreamCallbacks = {
 };
 
 export const chatApi = {
-    getMessages(): Promise<ChatMessage[]> {
-        return api.get<ChatMessage[]>('/chat/messages');
+    getMessages(page?: number, limit?: number): Promise<ChatMessage[]> {
+        const params = new URLSearchParams();
+        if (page) params.set('page', String(page));
+        if (limit) params.set('limit', String(limit));
+        const qs = params.toString();
+        return api.get<ChatMessage[]>(`/chat/messages${qs ? `?${qs}` : ''}`);
+    },
+
+    retractLastMessages(): Promise<void> {
+        return api.del('/chat/messages/retract-last');
     },
 
     async sendMessageStream(
         message: string,
         callbacks: StreamCallbacks,
+        signal?: AbortSignal,
     ): Promise<void> {
         try {
-            const response = await api.stream('/chat/messages', { message });
+            const response = await api.stream(
+                '/chat/messages',
+                { message },
+                signal,
+            );
             const reader = response.body!.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
+
+            let finished = false;
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -38,17 +53,30 @@ export const chatApi = {
 
                 for (const line of lines) {
                     if (!line.startsWith('data: ')) continue;
-                    const parsed: Record<string, unknown> = JSON.parse(
-                        line.slice(6),
-                    ) as Record<string, unknown>;
+                    let parsed: Record<string, unknown>;
+                    try {
+                        parsed = JSON.parse(line.slice(6)) as Record<
+                            string,
+                            unknown
+                        >;
+                    } catch {
+                        continue;
+                    }
                     if (parsed.type === 'token')
                         callbacks.onToken(parsed.content as string);
-                    else if (parsed.type === 'done') callbacks.onDone();
-                    else if (parsed.type === 'error')
+                    else if (parsed.type === 'done') {
+                        finished = true;
+                        callbacks.onDone();
+                    } else if (parsed.type === 'error') {
+                        finished = true;
                         callbacks.onError(new Error(parsed.message as string));
+                    }
                 }
             }
+
+            if (!finished) callbacks.onDone();
         } catch (error) {
+            if ((error as Error).name === 'AbortError') return;
             callbacks.onError(
                 error instanceof Error ? error : new Error(String(error)),
             );
