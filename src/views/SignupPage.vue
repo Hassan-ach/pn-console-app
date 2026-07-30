@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, reactive, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import { authApi } from "../api/auth";
 import AlertBanner from "../components/AlertBanner.vue";
+
+const router = useRouter();
 
 const firstName = ref("");
 const lastName = ref("");
@@ -238,7 +241,7 @@ async function handleSignup() {
     sessionStorage.setItem("access_token", res.access_token);
     created.value = true;
     setTimeout(() => {
-      window.location.hash = "#dashboard";
+      router.push("/home");
     }, 1500);
   } catch (e: any) {
     error.value = e.message ?? "Something went wrong. Please try again.";
@@ -408,10 +411,10 @@ async function handleSignup() {
 
           <p class="text-center text-[13px] text-gray-500 mt-6">
             Already have an account?
-            <a
-              href="#login"
+            <router-link
+              to="/login"
               class="text-[#FF8C4B] hover:text-[#F27D3A] font-bold cursor-pointer"
-              >Log in</a
+              >Log in</router-link
             >
           </p>
 

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { authApi } from "../api/auth";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import IntegrationsCard from "../components/settings/IntegrationsCard.vue";
 
+const router = useRouter();
 const showLogoutDialog = ref(false);
 const loggingOut = ref(false);
 
@@ -15,7 +17,7 @@ async function confirmLogout() {
     // Fire-and-forget — proceed with client-side logout regardless
   }
   sessionStorage.removeItem("access_token");
-  window.location.hash = "#login";
+  router.push("/login");
 }
 </script>
 

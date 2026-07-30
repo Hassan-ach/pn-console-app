@@ -20,7 +20,7 @@ async function request<T>(
     if (!res.ok) {
         if (res.status === 401 && token) {
             sessionStorage.removeItem('access_token');
-            window.location.hash = '#login';
+            window.location.hash = '#/login';
             throw new Error('Session expired. Please log in again.');
         }
         const text = await res.text();
@@ -71,7 +71,7 @@ async function requestStream(
     if (!res.ok) {
         if (res.status === 401 && token) {
             sessionStorage.removeItem('access_token');
-            window.location.hash = '#login';
+            window.location.hash = '#/login';
             throw new Error('Session expired. Please log in again.');
         }
         const text = await res.text();

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { authApi } from "../api/auth";
 import AlertBanner from "../components/AlertBanner.vue";
 
-const hashParts = window.location.hash.split("?");
-const params = new URLSearchParams(hashParts[1] || "");
-const token = params.get("token");
+const route = useRoute();
+const router = useRouter();
+const token = route.query.token as string | undefined;
 
 const password = ref("");
 const confirmPassword = ref("");
@@ -79,7 +80,7 @@ async function handleResetPassword() {
     sessionStorage.setItem("access_token", res.access_token);
     success.value = true;
     setTimeout(() => {
-      window.location.hash = "#dashboard";
+      router.push("/home");
     }, 2000);
   } catch (e: any) {
     error.value = e.message ?? "Something went wrong. Please try again.";
@@ -134,10 +135,10 @@ async function handleResetPassword() {
               new one.
             </p>
             <p class="text-center text-[13px] text-gray-500 mt-6">
-              <a
-                href="#forgot-password"
+              <router-link
+                to="/forgot-password"
                 class="text-[#FF8C4B] hover:text-[#F27D3A] font-bold cursor-pointer"
-                >Request a new reset link</a
+                >Request a new reset link</router-link
               >
             </p>
           </div>
@@ -206,10 +207,10 @@ async function handleResetPassword() {
           <AlertBanner type="error" :message="error" @dismiss="error = ''" />
 
           <p class="text-center text-[13px] text-gray-500 mt-6">
-            <a
-              href="#login"
+            <router-link
+              to="/login"
               class="text-[#FF8C4B] hover:text-[#F27D3A] font-bold cursor-pointer"
-              >&larr; Back to login</a
+              >&larr; Back to login</router-link
             >
           </p>
         </template>

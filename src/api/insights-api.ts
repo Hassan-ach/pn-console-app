@@ -57,6 +57,8 @@ export interface InsightSummary {
     type: InsightType;
     content: string;
     status: InsightActionStatus;
+    priority: number | null;
+    deadline: string | null;
 }
 
 export interface InsightDetail extends InsightSummary {
@@ -97,6 +99,12 @@ export const insightsApi = {
         );
     },
 
+    updatePriority(id: string, priority: number) {
+        return api.patch<InsightDetail>(
+            `/insights/${id}/priority?priority=${priority}`,
+        );
+    },
+
     listVersions(id: string) {
         return api.get<InsightSummary[]>(`/insights/${id}/versions`);
     },
@@ -111,3 +119,30 @@ export const insightsApi = {
         );
     },
 };
+
+export function getPriorityColor(score: number | null): string {
+    if (score === null) return '';
+    if (score >= 7) return 'bg-red-500 text-white';
+    if (score >= 4) return 'bg-amber-500 text-white';
+    return 'bg-emerald-500 text-white';
+}
+
+export function getPriorityLabel(score: number | null): string {
+    if (score === null) return 'No priority';
+    if (score >= 7) return 'High';
+    if (score >= 4) return 'Medium';
+    return 'Low';
+}
+
+export function formatDeadline(deadline: string | null): string | null {
+    if (!deadline) return null;
+    const now = new Date();
+    const due = new Date(deadline);
+    const diff = due.getTime() - now.getTime();
+    const days = Math.ceil(diff / 86400000);
+    if (days < 0) return 'Overdue';
+    if (days === 0) return 'Due today';
+    if (days === 1) return 'Due tomorrow';
+    if (days <= 7) return `Due in ${days} days`;
+    return due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
