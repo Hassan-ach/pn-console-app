@@ -55,6 +55,7 @@ async function requestStream(
     method: string,
     path: string,
     body?: unknown,
+    signal?: AbortSignal,
 ): Promise<Response> {
     const headers: Record<string, string> = {};
     if (body) headers['Content-Type'] = 'application/json';
@@ -66,6 +67,7 @@ async function requestStream(
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        signal,
     });
 
     if (!res.ok) {
@@ -100,5 +102,6 @@ export const api = {
     post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
     patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
     del: <T>(path: string) => request<T>('DELETE', path),
-    stream: (path: string, body?: unknown) => requestStream('POST', path, body),
+    stream: (path: string, body?: unknown, signal?: AbortSignal) =>
+        requestStream('POST', path, body, signal),
 };

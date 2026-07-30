@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { useChat } from '../composables/useChat';
 
 const {
@@ -13,6 +14,7 @@ const {
     loadHistory,
     sendMessage,
     retry,
+    scrollToTop,
     scrollToBottom,
     handleScroll,
 } = useChat();
@@ -23,7 +25,7 @@ marked.setOptions({
 });
 
 function renderMarkdown(content: string): string {
-    return marked.parse(content) as string;
+    return DOMPurify.sanitize(marked.parse(content) as string);
 }
 
 function handleSend() {
@@ -57,6 +59,7 @@ onMounted(() => {
             <!-- History button -->
             <button
                 type="button"
+                @click="scrollToTop"
                 class="ml-auto text-xs text-[#9E9A90] border border-[#E4E2DC] rounded px-2.5 py-1 hover:border-[#CECCBF] hover:text-[#5A564E] transition-all duration-200 cursor-pointer bg-transparent"
             >
                 History ↑
