@@ -23,7 +23,7 @@ watch(show, (val) => {
   if (val) {
     timer = setTimeout(() => emit('dismiss'), DURATION[props.type]);
   }
-});
+}, { immediate: true });
 
 onUnmounted(() => {
   if (timer) clearTimeout(timer);
