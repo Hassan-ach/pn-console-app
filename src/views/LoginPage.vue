@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import { authApi } from "../api/auth";
+import AlertBanner from "../components/AlertBanner.vue";
+
+const router = useRouter();
 
 const email = ref("");
 const password = ref("");
+const showPassword = ref(false);
 const loading = ref(false);
 const error = ref("");
 
@@ -161,7 +166,7 @@ async function handleLogin() {
       password: password.value,
     });
     sessionStorage.setItem("access_token", res.access_token);
-    window.location.hash = "#dashboard";
+    router.push("/home");
   } catch (e: any) {
     error.value = e.message ?? "Something went wrong. Please try again.";
   } finally {
@@ -248,25 +253,42 @@ async function handleLogin() {
               class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide"
               >Password <span class="text-red-500">*</span></label
             >
-            <input
-              id="password"
-              v-model="password"
-              @input="validateField('password')"
-              required
-              type="password"
-              placeholder="Enter your password"
-              class="w-full px-4 py-3 border border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:border-[#FF8C4B] focus:ring-2 focus:ring-[#FF8C4B]/20 shadow-sm transition-all bg-white"
-            />
+            <div class="relative">
+              <input
+                id="password"
+                v-model="password"
+                @input="validateField('password')"
+                required
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="Enter your password"
+                class="w-full px-4 py-3 pr-11 border border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:border-[#FF8C4B] focus:ring-2 focus:ring-[#FF8C4B]/20 shadow-sm transition-all bg-white"
+              />
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer bg-transparent border-none p-0"
+              >
+                <svg v-if="showPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
             <p v-if="fieldErrors.password" class="text-red-500 text-xs mt-1">
               {{ fieldErrors.password }}
             </p>
           </div>
 
           <div class="flex items-center justify-between">
-            <a
-              href="#forgot-password"
+            <router-link
+              to="/forgot-password"
               class="text-[13px] text-gray-500 hover:text-gray-700 font-medium cursor-pointer"
-              >Forgot password?</a
+              >Forgot password?</router-link
             >
           </div>
 
@@ -290,19 +312,14 @@ async function handleLogin() {
 
         <p class="text-center text-[13px] text-gray-500 mt-6">
           Don't have an account?
-          <a
-            href="#signup"
+          <router-link
+            to="/signup"
             class="text-[#FF8C4B] hover:text-[#F27D3A] font-bold cursor-pointer"
-            >Sign up</a
+            >Sign up</router-link
           >
         </p>
 
-        <p
-          v-if="error"
-          class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"
-        >
-          {{ error }}
-        </p>
+        <AlertBanner type="error" :message="error" @dismiss="error = ''" />
       </div>
     </section>
 

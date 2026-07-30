@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
-const currentPage = ref('');
+const route = useRoute();
+const router = useRouter();
 const isCollapsed = ref(localStorage.getItem('sidebar-collapsed') === 'true');
 
 function toggleCollapse() {
@@ -9,23 +11,13 @@ function toggleCollapse() {
     localStorage.setItem('sidebar-collapsed', String(isCollapsed.value));
 }
 
-function onHashChange() {
-    const raw = window.location.hash.replace('#', '');
-    currentPage.value = raw.split('?')[0] || '';
+function isActive(path: string): boolean {
+    return route.path === path;
 }
 
 function navigate(view: string) {
-    window.location.hash = view;
+    router.push(view);
 }
-
-onMounted(() => {
-    onHashChange();
-    window.addEventListener('hashchange', onHashChange);
-});
-
-onUnmounted(() => {
-    window.removeEventListener('hashchange', onHashChange);
-});
 </script>
 
 <template>
@@ -62,15 +54,15 @@ onUnmounted(() => {
                 </span>
             </button>
 
-            <a
-                href="#home"
-                @click.prevent="navigate('home')"
+            <button
+                type="button"
+                @click="navigate('/home')"
                 :class="
-                    currentPage === 'home' || currentPage === 'dashboard'
+                    isActive('/home')
                         ? 'bg-[#FF8C4B]/10 text-[#FF8C4B]'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 "
-                class="relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+                class="relative w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
                 :title="isCollapsed ? 'Home' : ''"
             >
                 <svg
@@ -93,17 +85,17 @@ onUnmounted(() => {
                 >
                     Home
                 </span>
-            </a>
+            </button>
 
-            <a
-                href="#jobs"
-                @click.prevent="navigate('jobs')"
+            <button
+                type="button"
+                @click="navigate('/jobs')"
                 :class="
-                    currentPage === 'jobs'
+                    isActive('/jobs')
                         ? 'bg-[#FF8C4B]/10 text-[#FF8C4B]'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 "
-                class="relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+                class="relative w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
                 :title="isCollapsed ? 'Jobs' : ''"
             >
                 <svg
@@ -126,17 +118,17 @@ onUnmounted(() => {
                 >
                     Jobs
                 </span>
-            </a>
+            </button>
 
-            <a
-                href="#insights"
-                @click.prevent="navigate('insights')"
+            <button
+                type="button"
+                @click="navigate('/insights')"
                 :class="
-                    currentPage === 'insights'
+                    isActive('/insights')
                         ? 'bg-[#FF8C4B]/10 text-[#FF8C4B]'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 "
-                class="relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+                class="relative w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
                 :title="isCollapsed ? 'Insights' : ''"
             >
                 <svg
@@ -161,17 +153,17 @@ onUnmounted(() => {
                 >
                     Insights
                 </span>
-            </a>
+            </button>
 
-            <a
-                href="#chat"
-                @click.prevent="navigate('chat')"
+            <button
+                type="button"
+                @click="navigate('/chat')"
                 :class="
-                    currentPage === 'chat'
+                    isActive('/chat')
                         ? 'bg-[#FF8C4B]/10 text-[#FF8C4B]'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 "
-                class="relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+                class="relative w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
                 :title="isCollapsed ? 'Chat' : ''"
             >
                 <svg
@@ -194,18 +186,17 @@ onUnmounted(() => {
                 >
                     Chat
                 </span>
-            </a>
+            </button>
 
-            <a
-                href="#settings"
-                @click.prevent="navigate('settings')"
+            <button
+                type="button"
+                @click="navigate('/settings')"
                 :class="
-                    currentPage === 'settings' ||
-                    currentPage === 'settings-telegram'
+                    isActive('/settings') || isActive('/settings-telegram')
                         ? 'bg-[#FF8C4B]/10 text-[#FF8C4B]'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 "
-                class="relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
+                class="relative w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
                 :title="isCollapsed ? 'Settings' : ''"
             >
                 <svg
@@ -236,7 +227,7 @@ onUnmounted(() => {
                 >
                     Settings
                 </span>
-            </a>
+            </button>
         </nav>
 
         <div class="px-2 py-3 border-t border-gray-100">

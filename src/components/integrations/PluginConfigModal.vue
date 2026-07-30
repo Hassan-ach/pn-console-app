@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import AlertBanner from '../AlertBanner.vue';
 import ChatBrowserModal from '../settings/telegram/ChatBrowserModal.vue';
 import type { ChatEntry } from '../settings/telegram/ChatBrowserModal.vue';
 import ConfirmDialog from '../ConfirmDialog.vue';
+import GenericConfigForm from './GenericConfigForm.vue';
+import {
+  PluginManagerClient,
+  type ConfigFieldSchema,
+  type ActivationRequirementResult,
+} from '../../api/plugin-manager';
 
 export interface ChatItem {
   id: string;
@@ -14,51 +20,108 @@ export interface ChatItem {
 const props = defineProps<{
   open: boolean;
   pluginName: string;
-  chats: ChatItem[];
+  chats?: ChatItem[];
   saving: boolean;
   error: string;
 }>();
 
 const emit = defineEmits<{
-  close: [];
-  save: [chats: ChatItem[]];
-  disconnect: [];
-  'clear-error': [];
+  (e: 'close'): void;
+  (e: 'save', config: Record<string, any>): void;
+  (e: 'disconnect'): void;
+  (e: 'clear-error'): void;
 }>();
 
+const client = new PluginManagerClient();
+
+const schema = ref<ConfigFieldSchema[]>([]);
+const configData = ref<Record<string, any>>({});
+const requirements = ref<ActivationRequirementResult[]>([]);
+const loadingSchema = ref(false);
+const fetchError = ref('');
 const browserOpen = ref(false);
 const showDisconnectDialog = ref(false);
-const localChats = ref<ChatItem[]>([]);
 
 watch(
-  [() => props.open, () => props.chats],
-  ([isOpen]) => {
-    if (isOpen) {
-      localChats.value = props.chats.map((c) => ({
-        id: c.id,
-        name: c.name,
-        historyLimit: c.historyLimit ?? null,
-      }));
+  [() => props.open, () => props.pluginName],
+  async ([isOpen, name]) => {
+    if (isOpen && name) {
+      loadingSchema.value = true;
+      fetchError.value = '';
+      try {
+        const [loadedSchema, loadedConfig, loadedReqs] = await Promise.all([
+          client.getConfigSchema(name).catch(() => []),
+          client.getConfig(name).catch(() => ({})),
+          client.getActivationRequirements(name).catch(() => []),
+        ]);
+
+        schema.value = loadedSchema;
+        requirements.value = loadedReqs;
+
+        // Merge initial chats if provided in props
+        const chatsList = (loadedConfig as any)?.chats ?? props.chats ?? [];
+        const formattedChats = chatsList.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          historyLimit: c.historyLimit ?? null,
+        }));
+
+        configData.value = {
+          ...loadedConfig,
+          chats: formattedChats,
+        };
+
+        // Fallback schema if API returns empty schema
+        if (schema.value.length === 0) {
+          schema.value = [
+            {
+              key: 'chats',
+              label: 'Chats / Channels to monitor',
+              type: 'checkbox-list',
+              required: true,
+              description: 'Configure monitored chats or sources',
+            },
+          ];
+        }
+      } catch (err: any) {
+        fetchError.value = err.message ?? 'Failed to load plugin schema';
+      } finally {
+        loadingSchema.value = false;
+      }
     }
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 );
 
-function removeChat(id: string) {
-  localChats.value = localChats.value.filter((c) => c.id !== id);
-}
+// Filter schema fields to activation requirements fields to prevent modifying login/auth credentials (e.g. apiId, apiHash)
+const filteredSchema = computed(() => {
+  if (!requirements.value || requirements.value.length === 0) {
+    return schema.value;
+  }
+  const reqFields = new Set(requirements.value.map((r) => r.field));
+  // Only include fields that match activation requirements
+  const matched = schema.value.filter((f) => reqFields.has(f.key));
+  return matched.length > 0 ? matched : schema.value;
+});
 
 function onBrowserSelect(selected: ChatEntry[]) {
-  const existingIds = new Set(localChats.value.map((c) => c.id));
+  const currentChats: ChatItem[] = Array.isArray(configData.value.chats)
+    ? [...configData.value.chats]
+    : [];
+  const existingIds = new Set(currentChats.map((c) => c.id));
   for (const item of selected) {
     if (!existingIds.has(item.id)) {
-      localChats.value.push({ id: item.id, name: item.name, historyLimit: null });
+      currentChats.push({ id: item.id, name: item.name, historyLimit: null });
     }
   }
+  configData.value = {
+    ...configData.value,
+    chats: currentChats,
+  };
 }
 
 function onSave() {
-  emit('save', localChats.value);
+  emit('save', configData.value);
 }
 
 function promptDisconnect() {
@@ -109,58 +172,64 @@ function confirmDisconnect() {
         </div>
 
         <div class="p-5 space-y-5">
-          <AlertBanner
-            v-if="error"
-            type="error"
-            :message="error"
-            @dismiss="emit('clear-error')"
-          />
+          <AlertBanner type="error" :message="error || fetchError" @dismiss="emit('clear-error')" />
 
-          <!-- Chats section -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="text-sm font-medium text-gray-700"
-                >Chats to monitor</label
-              >
-              <button
-                type="button"
-                @click="browserOpen = true"
-                class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
-              >
-                Browse chats
-              </button>
-            </div>
-
-            <div v-if="localChats.length > 0" class="space-y-2">
-              <div
-                v-for="chat in localChats"
-                :key="chat.id"
-                class="flex items-center gap-2 py-2 px-3 rounded-lg border border-gray-200"
-              >
-                <span class="flex-1 text-sm text-gray-700 truncate min-w-0">{{
-                  chat.name
-                }}</span>
-                <input
-                  v-model.number="chat.historyLimit"
-                  type="number"
-                  min="0"
-                  placeholder="Limit"
-                  class="w-20 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#FF8C4B]/30 focus:border-[#FF8C4B] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  title="Max messages to extract (empty = all)"
-                />
-                <button
-                  type="button"
-                  @click="removeChat(chat.id)"
-                  class="text-xs text-red-500 hover:text-red-700 cursor-pointer shrink-0"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-            <p v-else class="text-sm text-gray-400">
-              No chats added yet. Click "Browse chats" to select.
-            </p>
+          <!-- Requirement notice if any requirement is not met -->
+          <div
+            v-for="req in requirements"
+            :key="req.field"
+            class="text-xs p-3 rounded-xl flex items-center gap-2"
+            :class="
+              req.met
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-100'
+                : 'bg-amber-50 text-amber-800 border border-amber-100'
+            "
+          >
+            <svg
+              v-if="req.met"
+              class="w-4 h-4 text-emerald-500 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <svg
+              v-else
+              class="w-4 h-4 text-amber-500 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <span>{{ req.message }}</span>
           </div>
+
+          <!-- Loading state -->
+          <div v-if="loadingSchema" class="py-8 text-center text-sm text-gray-400 animate-pulse">
+            Loading configuration options…
+          </div>
+
+          <!-- Dynamic Form (filtered to activation requirements fields) -->
+          <GenericConfigForm
+            v-else
+            :schema="filteredSchema"
+            v-model="configData"
+            :disabled="saving"
+            :plugin-name="pluginName"
+            @browse-chats="browserOpen = true"
+          />
 
           <!-- Actions -->
           <div class="flex gap-3 pt-3 border-t border-gray-100">
@@ -194,9 +263,13 @@ function confirmDisconnect() {
     </div>
   </Teleport>
 
+  <!-- Telegram dialog selector modal -->
   <ChatBrowserModal
+    v-if="pluginName === 'telegram'"
     :open="browserOpen"
-    :existing="localChats.map((c) => ({ name: c.name, id: c.id }))"
+    :existing="
+      (configData.chats || []).map((c: any) => ({ name: c.name, id: c.id }))
+    "
     @close="browserOpen = false"
     @select="onBrowserSelect"
   />

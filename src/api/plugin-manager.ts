@@ -203,7 +203,8 @@ export interface PluginConfig {
 export interface ConfigFieldSchema {
     key: string;
     label: string;
-    type: 'text' | 'number' | 'select' | 'checkbox-list' | 'boolean';
+    type:
+        'text' | 'number' | 'select' | 'checkbox-list' | 'boolean' | 'password';
     required?: boolean;
     options?: { label: string; value: string }[];
     placeholder?: string;

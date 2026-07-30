@@ -195,16 +195,19 @@ async function handleConfigure(name: string) {
   }
 }
 
-async function handleSaveConfig(updatedChats: ChatItem[]) {
+async function handleSaveConfig(updatedConfig: Record<string, any>) {
   modalSaving.value = true;
   modalError.value = '';
   try {
-    const chatsPayload = updatedChats.map((c) => {
-      const entry: Record<string, any> = { id: c.id, name: c.name };
-      if (c.historyLimit != null) entry.historyLimit = c.historyLimit;
-      return entry;
-    });
-    await client.updateConfig(modalPlugin.value, { chats: chatsPayload });
+    const payload = { ...updatedConfig };
+    if (Array.isArray(payload.chats)) {
+      payload.chats = payload.chats.map((c: any) => {
+        const entry: Record<string, any> = { id: c.id, name: c.name };
+        if (c.historyLimit != null) entry.historyLimit = c.historyLimit;
+        return entry;
+      });
+    }
+    await client.updateConfig(modalPlugin.value, payload);
     success.value = 'Configuration saved';
     showConfigModal.value = false;
     await load();
@@ -234,8 +237,8 @@ async function handleDisconnect() {
 <template>
   <div class="max-w-4xl mx-auto">
     <nav class="text-sm text-gray-400 mb-6 flex items-center gap-2">
-      <a href="#settings" class="hover:text-gray-600 transition-colors"
-        >Settings</a
+      <router-link to="/settings" class="hover:text-gray-600 transition-colors"
+        >Settings</router-link
       >
       <span>/</span>
       <span class="text-[#FF8C4B] font-medium">Integrations</span>
@@ -243,18 +246,8 @@ async function handleDisconnect() {
 
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Integrations</h1>
 
-    <AlertBanner
-      v-if="success"
-      type="success"
-      :message="success"
-      @dismiss="success = ''"
-    />
-    <AlertBanner
-      v-if="error"
-      type="error"
-      :message="error"
-      @dismiss="error = ''"
-    />
+    <AlertBanner type="success" :message="success" @dismiss="success = ''" />
+    <AlertBanner type="error" :message="error" @dismiss="error = ''" />
 
     <!-- Skeleton Loading -->
     <div v-if="pageLoading" class="space-y-3">

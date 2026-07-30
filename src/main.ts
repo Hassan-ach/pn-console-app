@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
 import './style.css';
 import App from './App.vue';
-import { insightsRouter } from './router/insightsRouter';
+import router from './router';
 
 async function bootstrap() {
     // Load GramJS bundle (IIFE sets window.TelegramLib)
@@ -18,7 +18,7 @@ async function bootstrap() {
 
     const app = createApp(App);
 
-    app.use(insightsRouter);
+    app.use(router);
     app.mount('#app');
 }
 

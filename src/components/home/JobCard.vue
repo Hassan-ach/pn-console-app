@@ -3,6 +3,13 @@ import type { Job } from "../../api/jobs";
 
 defineProps<{ job: Job }>();
 
+const STATUS_CONFIG: Record<string, { rail: string; badge: string; label: string }> = {
+  PENDING: { rail: "bg-stone-400", badge: "bg-stone-50 text-stone-700", label: "Pending" },
+  RUNNING: { rail: "bg-blue-500", badge: "bg-blue-50 text-blue-700", label: "Running" },
+  COMPLETED: { rail: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700", label: "Completed" },
+  FAILED: { rail: "bg-red-500", badge: "bg-red-50 text-red-700", label: "Failed" },
+};
+
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -14,44 +21,40 @@ function timeAgo(dateStr: string | null): string {
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
 }
-
-const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-  PENDING: { bg: "bg-gray-100", text: "text-gray-700", label: "Pending" },
-  RUNNING: { bg: "bg-blue-50", text: "text-blue-700", label: "Running" },
-  COMPLETED: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Completed" },
-  FAILED: { bg: "bg-red-50", text: "text-red-700", label: "Failed" },
-};
 </script>
 
 <template>
-  <div class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors">
-    <div class="flex-1 min-w-0">
-      <div class="flex items-center gap-3">
-        <h3 class="text-sm font-semibold text-gray-900 truncate">{{ job.title }}</h3>
-        <span
-          :class="[statusConfig[job.status]?.bg, statusConfig[job.status]?.text]"
-          class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full"
-        >
-          <svg v-if="job.status === 'RUNNING'" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          {{ statusConfig[job.status]?.label }}
+  <div class="flex w-full items-stretch overflow-hidden rounded-xl border border-stone-200 bg-white transition-all duration-150 hover:border-stone-300 hover:shadow-md active:scale-[0.997]">
+    <button
+      type="button"
+      class="flex min-w-0 flex-1 items-stretch text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
+    >
+      <span class="w-[3px] flex-shrink-0" :class="STATUS_CONFIG[job.status]?.rail" aria-hidden="true" />
+      <span class="flex min-w-0 flex-1 flex-col gap-1.5 px-3 py-3.5">
+        <span class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide" :class="STATUS_CONFIG[job.status]?.badge">
+            <svg v-if="job.status === 'RUNNING'" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            {{ STATUS_CONFIG[job.status]?.label }}
+          </span>
         </span>
-      </div>
-      <p class="text-xs text-gray-500 mt-1 truncate">{{ job.message }}</p>
-      <div v-if="job.progressable && job.progress !== null" class="mt-2">
-        <div class="w-full bg-gray-100 rounded-full h-1.5">
-          <div
-            class="bg-[#FF8C4B] h-1.5 rounded-full transition-all duration-300"
-            :style="{ width: `${job.progress}%` }"
-          ></div>
+        <span class="text-[14.5px] leading-relaxed text-stone-800">{{ job.title }}</span>
+        <span v-if="job.message" class="text-[12px] text-stone-500">{{ job.message }}</span>
+        <div v-if="job.progressable && job.progress !== null" class="mt-0.5">
+          <div class="w-full bg-stone-100 rounded-full h-1.5">
+            <div
+              class="bg-[#FF8C4B] h-1.5 rounded-full transition-all duration-300"
+              :style="{ width: `${job.progress}%` }"
+            ></div>
+          </div>
+          <span class="text-[11px] text-stone-400 mt-0.5 inline-block">{{ job.progress }}%</span>
         </div>
-        <p class="text-xs text-gray-400 mt-1">{{ job.progress }}%</p>
-      </div>
-    </div>
-    <div class="ml-4 text-xs text-gray-400 whitespace-nowrap">
+      </span>
+    </button>
+    <span class="mr-3.5 flex flex-shrink-0 items-center text-[12px] text-stone-400 whitespace-nowrap">
       {{ timeAgo(job.startedAt) }}
-    </div>
+    </span>
   </div>
 </template>

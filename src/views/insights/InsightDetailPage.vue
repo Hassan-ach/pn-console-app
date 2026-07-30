@@ -6,6 +6,8 @@ import {
   VALID_ACTIONS,
   STATUS_LABELS,
   STATUS_COLORS,
+  getPriorityColor,
+  formatDeadline,
   type InsightDetail,
   type InsightSummary,
   type InsightType,
@@ -71,6 +73,32 @@ const selectedAction = ref<InsightActionStatus | ''>('');
 
 const statusLabel = computed(() => detail.value ? STATUS_LABELS[detail.value.status] : '');
 const statusColor = computed(() => detail.value ? STATUS_COLORS[detail.value.status] : '');
+
+const priorityColor = computed(() => getPriorityColor(detail.value?.priority ?? null));
+const deadlineText = computed(() => {
+  if (!detail.value?.deadline) return 'No deadline set';
+  return formatDeadline(detail.value.deadline);
+});
+
+const hasDeadline = computed(() => !!detail.value?.deadline);
+
+const priorityOverride = ref<number | null>(null);
+const priorityLoading = ref(false);
+const priorityError = ref<string | null>(null);
+
+async function updatePriority() {
+  if (!detail.value || priorityOverride.value == null) return;
+  priorityLoading.value = true;
+  priorityError.value = null;
+  try {
+    detail.value = await insightsApi.updatePriority(detail.value.id, priorityOverride.value);
+    priorityOverride.value = null;
+  } catch (err) {
+    priorityError.value = err instanceof Error ? err.message : 'Failed to update priority.';
+  } finally {
+    priorityLoading.value = false;
+  }
+}
 
 async function performAction() {
   if (!detail.value || !selectedAction.value || selectedAction.value === detail.value.status || actionLoading.value) return;
@@ -197,7 +225,7 @@ watch(
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
-      Back to insights
+      {{ route.query.from === 'home' ? 'Back to home' : 'Back to insights' }}
     </button>
 
     <div v-if="isLoading" class="rounded-xl border border-dashed border-stone-300 bg-white px-4 py-10 text-center text-sm text-stone-500">
@@ -276,6 +304,25 @@ watch(
           </svg>
           v{{ detail.version }}
         </span>
+        <span
+          v-if="detail.priority != null"
+          class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold"
+          :class="priorityColor"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          Priority: {{ detail.priority }}
+        </span>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold"
+          :class="hasDeadline ? 'bg-red-50 text-red-600' : 'bg-stone-100 text-stone-500'"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          {{ deadlineText }}
+        </span>
         <button
           v-if="detail.envolopsRef.length"
           type="button"
@@ -322,6 +369,28 @@ watch(
         </template>
       </div>
     </article>
+
+    <!-- Priority Override -->
+    <div v-if="detail" class="mt-4 flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-5 py-3">
+      <label class="text-sm font-medium text-stone-600">Override Priority:</label>
+      <select
+        v-model="priorityOverride"
+        class="rounded-lg border border-stone-300 bg-white px-2 py-1 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+        :disabled="priorityLoading"
+      >
+        <option :value="null" disabled>Select…</option>
+        <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
+      </select>
+      <button
+        type="button"
+        class="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
+        :disabled="priorityOverride == null || priorityLoading"
+        @click="updatePriority"
+      >
+        {{ priorityLoading ? 'Saving…' : 'Save' }}
+      </button>
+      <span v-if="priorityError" class="text-xs text-red-600">{{ priorityError }}</span>
+    </div>
 
     <!-- Version History -->
     <div v-if="detail" class="mt-4">
@@ -393,6 +462,13 @@ watch(
             >
               {{ TYPE_LABELS[v.type] }}
             </span>
+            <span
+              v-if="v.priority != null"
+              class="inline-flex items-center justify-center rounded-full w-5 h-5 text-[10px] font-bold flex-shrink-0"
+              :class="getPriorityColor(v.priority)"
+            >
+              {{ v.priority }}
+            </span>
             <span class="min-w-0 flex-1 truncate text-[13.5px] text-stone-700">{{ v.content }}</span>
             <svg
               width="14"
@@ -425,6 +501,19 @@ watch(
                 </span>
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-medium text-stone-600">
                   {{ versionDetails[v.id].broadcasted ? 'Broadcasted' : 'Not broadcasted' }}
+                </span>
+                <span
+                  v-if="versionDetails[v.id].priority != null"
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                  :class="getPriorityColor(versionDetails[v.id].priority)"
+                >
+                  P{{ versionDetails[v.id].priority }}
+                </span>
+                <span
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                  :class="versionDetails[v.id].deadline ? 'bg-red-50 text-red-600' : 'bg-stone-100 text-stone-500'"
+                >
+                  {{ versionDetails[v.id].deadline ? formatDeadline(versionDetails[v.id].deadline) : 'No deadline set' }}
                 </span>
               </div>
             </div>
