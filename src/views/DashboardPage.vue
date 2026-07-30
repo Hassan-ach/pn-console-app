@@ -9,13 +9,11 @@ import {
   getPriorityColor,
   STATUS_LABELS,
 } from "../api/insights-api";
-import { jobsApi, type Job, type JobStatus } from "../api/jobs";
 
 const router = useRouter();
 
 const userName = ref("there");
 const insights = ref<InsightSummary[]>([]);
-const recentJobs = ref<Job[]>([]);
 const loading = ref(true);
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -67,42 +65,7 @@ function perTypeCounts(items: InsightSummary[]): Record<InsightType, number> {
   return counts;
 }
 
-const JOB_STATUS_LABELS: Record<JobStatus, string> = {
-  PENDING: "Pending",
-  RUNNING: "Running",
-  COMPLETED: "Completed",
-  FAILED: "Failed",
-};
-
-const JOB_STATUS_COLORS: Record<JobStatus, string> = {
-  PENDING: "bg-gray-50 text-gray-700",
-  RUNNING: "bg-blue-50 text-blue-700",
-  COMPLETED: "bg-emerald-50 text-emerald-700",
-  FAILED: "bg-red-50 text-red-700",
-};
-
-const JOB_STATUS_BORDER_COLORS: Record<JobStatus, string> = {
-  PENDING: "border-l-gray-300",
-  RUNNING: "border-l-blue-400",
-  COMPLETED: "border-l-emerald-400",
-  FAILED: "border-l-red-400",
-};
-
-const JOB_STATUS_ICONS: Record<JobStatus, string> = {
-  PENDING: "M12 6v6m0 0v6m0-6h6m-6 0H6",
-  RUNNING: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
-  COMPLETED: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
-  FAILED: "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z",
-};
-
-function perStatusCounts(items: Job[]): Record<JobStatus, number> {
-  const counts: Record<JobStatus, number> = { PENDING: 0, RUNNING: 0, COMPLETED: 0, FAILED: 0 };
-  for (const item of items) counts[item.status]++;
-  return counts;
-}
-
 const typeCounts = computed(() => perTypeCounts(insights.value));
-const statusCounts = computed(() => perStatusCounts(recentJobs.value));
 
 const topPriority = computed(() => {
   const pending = insights.value.filter((i) => i.status === "PENDING");
@@ -124,12 +87,8 @@ function goToInsight(id: string) {
 async function fetchData() {
   try {
     userName.value = getUserName();
-    const [insightList, jobs] = await Promise.all([
-      insightsApi.list(undefined, undefined, 50).catch(() => [] as InsightSummary[]),
-      jobsApi.list().catch(() => [] as Job[]),
-    ]);
+    const insightList = await insightsApi.list(undefined, undefined, 50).catch(() => [] as InsightSummary[]);
     insights.value = insightList;
-    recentJobs.value = jobs;
   } finally {
     loading.value = false;
   }
@@ -252,37 +211,6 @@ onUnmounted(() => {
             <div>
               <p class="text-xl font-bold text-gray-900">{{ typeCounts[type] }}</p>
               <p class="text-xs text-gray-500">{{ TYPE_LABELS[type] }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">Jobs</h2>
-          <router-link
-            to="/jobs"
-            class="text-sm text-[#FF8C4B] hover:text-[#F27D3A] font-medium transition-colors"
-          >
-            View all
-          </router-link>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div
-            v-for="(status, idx) in (['RUNNING', 'PENDING', 'COMPLETED', 'FAILED'] as JobStatus[])"
-            :key="idx"
-            class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 border-l-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all"
-            :class="JOB_STATUS_BORDER_COLORS[status]"
-            @click="router.push({ path: '/jobs', query: { status } })"
-          >
-            <div :class="JOB_STATUS_COLORS[status]" class="p-2 rounded-lg">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="JOB_STATUS_ICONS[status]" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-xl font-bold text-gray-900">{{ statusCounts[status] }}</p>
-              <p class="text-xs text-gray-500">{{ JOB_STATUS_LABELS[status] }}</p>
             </div>
           </div>
         </div>

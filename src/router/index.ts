@@ -5,7 +5,6 @@ import ForgotPasswordPage from '../views/ForgotPasswordPage.vue';
 import ResetPasswordPage from '../views/ResetPasswordPage.vue';
 import HomeLayout from '../views/HomePage.vue';
 import DashboardPage from '../views/DashboardPage.vue';
-import JobsPage from '../views/JobsPage.vue';
 import ChatPage from '../views/ChatPage.vue';
 import InsightsPage from '../views/insights/InsightsPage.vue';
 import InsightDetailPage from '../views/insights/InsightDetailPage.vue';
@@ -58,7 +57,6 @@ const router = createRouter({
             children: [
                 { path: '', redirect: '/home' },
                 { path: 'home', name: 'home', component: DashboardPage },
-                { path: 'jobs', name: 'jobs', component: JobsPage },
                 {
                     path: 'insights',
                     name: 'insights',
