@@ -1,15 +1,22 @@
-import { ref, nextTick, onUnmounted } from 'vue';
-import { chatApi, type ChatMessage } from '../api/chat-api';
+import { ref, computed, nextTick, onUnmounted } from 'vue';
+import { chatApi, type ChatMessage, type Conversation } from '../api/chat-api';
 
 export function useChat() {
     const messages = ref<ChatMessage[]>([]);
+    const conversations = ref<Conversation[]>([]);
+    const activeConversationId = ref<string | null>(null);
     const isLoading = ref(false);
     const isStreaming = ref(false);
     const error = ref<string | null>(null);
     const input = ref('');
     const lastUserMessage = ref('');
     const isAtBottom = ref(true);
+    const sidebarOpen = ref(true);
     let abortController: AbortController | null = null;
+
+    const activeConversation = computed(() =>
+        conversations.value.find((c) => c.id === activeConversationId.value) ?? null,
+    );
 
     onUnmounted(() => {
         if (abortController) {
@@ -18,17 +25,35 @@ export function useChat() {
         }
     });
 
+    async function loadConversations() {
+        try {
+            conversations.value = await chatApi.getConversations(1, 100);
+            if (!activeConversationId.value && conversations.value.length > 0) {
+                await switchConversation(conversations.value[0].id);
+            }
+            if (conversations.value.length === 0) {
+                await startNewChat();
+            }
+        } catch (err) {
+            error.value =
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to load conversations';
+        }
+    }
+
     async function loadHistory() {
+        if (!activeConversationId.value) return;
         isLoading.value = true;
         error.value = null;
         try {
-            const fetched = await chatApi.getMessages();
-            // Deduplicate by content + role to prevent orphaned duplicates
+            const fetched = await chatApi.getMessages(
+                activeConversationId.value,
+            );
             const seen = new Set<string>();
             messages.value = fetched.filter((msg) => {
-                const key = `${msg.role}:${msg.content}`;
-                if (seen.has(key)) return false;
-                seen.add(key);
+                if (seen.has(msg.id)) return false;
+                seen.add(msg.id);
                 return true;
             });
             isLoading.value = false;
@@ -36,14 +61,82 @@ export function useChat() {
             scrollToBottom();
         } catch (err) {
             error.value =
-                err instanceof Error ? err.message : 'Failed to load history';
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to load history';
             isLoading.value = false;
+        }
+    }
+
+    async function switchConversation(conversationId: string) {
+        if (isStreaming.value) return;
+        activeConversationId.value = conversationId;
+        await loadHistory();
+    }
+
+    async function deleteConversation(conversationId: string) {
+        if (isStreaming.value) return;
+
+        try {
+            await chatApi.deleteConversation(conversationId);
+            conversations.value = conversations.value.filter(
+                (c) => c.id !== conversationId,
+            );
+
+            if (activeConversationId.value === conversationId) {
+                const next =
+                    conversations.value.find((c) => c.messageCount > 0) ??
+                    conversations.value[0];
+                if (next) {
+                    await switchConversation(next.id);
+                } else {
+                    activeConversationId.value = null;
+                    messages.value = [];
+                }
+            }
+        } catch (err) {
+            error.value =
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to delete conversation';
+        }
+    }
+
+    async function startNewChat() {
+        if (isStreaming.value) return;
+
+        const existingEmpty = conversations.value.find(
+            (c) => c.messageCount === 0,
+        );
+        if (existingEmpty) {
+            activeConversationId.value = existingEmpty.id;
+            messages.value = [];
+            error.value = null;
+            await nextTick();
+            return;
+        }
+
+        try {
+            const conv = await chatApi.createConversation();
+            conversations.value.unshift(conv);
+            activeConversationId.value = conv.id;
+            messages.value = [];
+            error.value = null;
+            await nextTick();
+        } catch (err) {
+            error.value =
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to create new chat';
         }
     }
 
     async function sendMessage(text: string) {
         const trimmed = text.trim();
         if (!trimmed || isStreaming.value) return;
+
+        const currentConvId = activeConversationId.value;
+        if (!currentConvId) return;
 
         lastUserMessage.value = trimmed;
         error.value = null;
@@ -71,52 +164,84 @@ export function useChat() {
         abortController = new AbortController();
         const signal = abortController.signal;
 
-        await chatApi.sendMessageStream(trimmed, {
-            onToken(token: string) {
-                assistantMessage.content += token;
-                if (isAtBottom.value) {
-                    void nextTick(() => scrollToBottom());
-                }
+        await chatApi.sendMessageStream(
+            trimmed,
+            currentConvId,
+            {
+                onMetadata(conversationId: string) {
+                    if (activeConversationId.value !== conversationId) {
+                        activeConversationId.value = conversationId;
+                        messages.value = messages.value.filter(
+                            (m) => !m.id.startsWith('temp-'),
+                        );
+                    }
+                },
+                onToken(token: string) {
+                    assistantMessage.content += token;
+                    if (isAtBottom.value) {
+                        void nextTick(() => scrollToBottom());
+                    }
+                },
+                onDone() {
+                    isStreaming.value = false;
+                    input.value = '';
+                    abortController = null;
+                    // Refresh conversation list to update titles
+                    void chatApi.getConversations(1, 100).then((list) => {
+                        conversations.value = list;
+                    });
+                },
+                onError(err: Error) {
+                    error.value = err.message;
+                    isStreaming.value = false;
+                    input.value = '';
+                    abortController = null;
+                    messages.value = messages.value.filter(
+                        (m) => !m.id.startsWith('temp-'),
+                    );
+                },
             },
-            onDone() {
-                isStreaming.value = false;
-                input.value = '';
-                abortController = null;
-            },
-            onError(err: Error) {
-                error.value = err.message;
-                isStreaming.value = false;
-                input.value = '';
-                abortController = null;
-            },
-        }, signal);
+            signal,
+        );
     }
 
     async function retry() {
-        if (!lastUserMessage.value) return;
+        if (!lastUserMessage.value || !activeConversationId.value) return;
         const msg = lastUserMessage.value;
         messages.value = messages.value.filter(
             (m) => !m.id.startsWith('temp-'),
         );
         try {
-            await chatApi.retractLastMessages();
+            await chatApi.retractLastMessages(activeConversationId.value);
         } catch {
             // Best-effort cleanup of failed messages from DB
         }
-        // Reload from server to ensure clean state before re-sending
         try {
-            const fetched = await chatApi.getMessages();
+            const fetched = await chatApi.getMessages(
+                activeConversationId.value,
+            );
             const seen = new Set<string>();
             messages.value = fetched.filter((m) => {
-                const key = `${m.role}:${m.content}`;
-                if (seen.has(key)) return false;
-                seen.add(key);
+                if (seen.has(m.id)) return false;
+                seen.add(m.id);
                 return true;
             });
         } catch {
             // Keep local state if reload fails
         }
         await sendMessage(msg);
+    }
+
+    function stopGenerating() {
+        if (!abortController) return;
+        abortController.abort();
+        abortController = null;
+        isStreaming.value = false;
+        input.value = '';
+    }
+
+    function toggleSidebar() {
+        sidebarOpen.value = !sidebarOpen.value;
     }
 
     function scrollToTop() {
@@ -147,14 +272,24 @@ export function useChat() {
 
     return {
         messages,
+        conversations,
+        activeConversationId,
+        activeConversation,
         isLoading,
         isStreaming,
         error,
         input,
         isAtBottom,
+        sidebarOpen,
+        loadConversations,
         loadHistory,
         sendMessage,
+        stopGenerating,
         retry,
+        switchConversation,
+        startNewChat,
+        deleteConversation,
+        toggleSidebar,
         scrollToTop,
         scrollToBottom,
         handleScroll,
