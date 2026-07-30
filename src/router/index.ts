@@ -12,6 +12,8 @@ import InsightDetailPage from '../views/insights/InsightDetailPage.vue';
 import SettingsPage from '../views/SettingsPage.vue';
 import IntegrationsPage from '../views/IntegrationsPage.vue';
 
+import SuggestionsPage from '../views/SuggestionsPage.vue';
+
 const AUTH_WHITELIST = [
     '/login',
     '/signup',
@@ -71,6 +73,18 @@ const router = createRouter({
                     props: true,
                 },
                 { path: 'chat', name: 'chat', component: ChatPage },
+                {
+                    path: 'insights/:id/suggestions',
+                    name: 'insight-suggestions',
+                    component: SuggestionsPage,
+                    props: true,
+                },
+                {
+                    path: 'suggestions/:insightId?',
+                    name: 'suggestions',
+                    component: SuggestionsPage,
+                    props: true,
+                },
                 {
                     path: 'settings',
                     name: 'settings',
