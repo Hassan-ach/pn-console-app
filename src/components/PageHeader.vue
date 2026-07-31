@@ -1,41 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { api } from '../api/client';
+import { useUser } from '../composables/useUser';
 
 const router = useRouter();
+const { profile } = useUser();
 
-interface UserProfile {
-    id: string;
-    firstName: string;
-    lastName: string | null;
-    email: string;
-}
-
-const userName = ref('User');
-const currentDate = ref('');
-
-async function fetchUserProfile() {
-    try {
-        const profile = await api.get<UserProfile>('/profile/meta-data');
-        userName.value = profile.firstName || 'User';
-    } catch {
-        userName.value = 'User';
-    }
-}
-
-function formatDate(): string {
-    return new Date().toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
-}
-
-onMounted(() => {
-    fetchUserProfile();
-    currentDate.value = formatDate();
+const userName = computed(() => profile.value?.firstName ?? 'User');
+const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
 });
 </script>
 
