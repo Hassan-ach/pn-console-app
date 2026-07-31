@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import hljs from 'highlight.js/lib/common';
+import 'highlight.js/styles/github-dark.css';
 import { useChat } from '../composables/useChat';
 import ConversationSidebar from '../components/ConversationSidebar.vue';
+import type { ChatMessage } from '../api/chat-api';
 
 const {
     messages,
@@ -32,8 +35,91 @@ marked.setOptions({
     gfm: true,
 });
 
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+const renderer = new marked.Renderer();
+renderer.code = ({ text, lang, escaped }) => {
+    let source = text;
+    if (escaped) {
+        source = source
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g, '&');
+    }
+
+    const language = lang && hljs.getLanguage(lang) ? lang : '';
+    let highlighted = source;
+    try {
+        highlighted = language
+            ? hljs.highlight(source, { language, ignoreIllegals: true }).value
+            : hljs.highlightAuto(source).value;
+    } catch {
+        highlighted = escapeHtml(source);
+    }
+
+    const label = escapeHtml(lang || 'text');
+    const langClass = language ? ` language-${escapeHtml(language)}` : '';
+    return [
+        '<div class="code-block">',
+        `<div class="code-block-header"><span class="code-lang">${label}</span><button type="button" class="copy-code-btn" aria-label="Copy code">Copy</button></div>`,
+        `<pre><code class="hljs${langClass}">${highlighted}</code></pre>`,
+        '</div>',
+    ].join('');
+};
+
 function renderMarkdown(content: string): string {
-    return DOMPurify.sanitize(marked.parse(content) as string);
+    return DOMPurify.sanitize(marked.parse(content, { renderer }) as string);
+}
+
+async function handleCodeCopy(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    const button = target.closest<HTMLButtonElement>('.copy-code-btn');
+    if (!button) return;
+    const code = button.closest('.code-block')?.querySelector('code');
+    if (!code) return;
+    try {
+        await navigator.clipboard.writeText(code.textContent ?? '');
+    } catch {
+        return;
+    }
+    const label = button.textContent;
+    button.textContent = 'Copied';
+    button.classList.add('copied');
+    window.setTimeout(() => {
+        button.textContent = label;
+        button.classList.remove('copied');
+    }, 1600);
+}
+
+const copiedMessageId = ref<string | null>(null);
+
+async function copyMessage(message: ChatMessage) {
+    try {
+        await navigator.clipboard.writeText(message.content);
+    } catch {
+        return;
+    }
+    copiedMessageId.value = message.id;
+    window.setTimeout(() => {
+        if (copiedMessageId.value === message.id) {
+            copiedMessageId.value = null;
+        }
+    }, 1600);
+}
+
+function formatTime(dateStr: string): string {
+    return new Date(dateStr).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
 }
 
 function handleSend() {
@@ -157,6 +243,7 @@ onMounted(() => {
                 <div
                     id="chat-messages"
                     @scroll="handleScroll"
+                    @click="handleCodeCopy"
                     class="absolute inset-0 overflow-y-auto px-5 py-5 flex flex-col gap-3.5 scroll-smooth [scrollbar-width:thin] [scrollbar-color:#CECCBF_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#CECCBF] [&::-webkit-scrollbar-thumb]:rounded"
                 >
                     <!-- Loading -->
@@ -184,24 +271,64 @@ onMounted(() => {
 
                             <!-- Message bubble -->
                             <div v-else :class="item.message.role === 'USER' ? 'flex justify-end' : 'flex justify-start'">
-                                <div
-                                    v-if="item.message.role === 'USER'"
-                                    class="max-w-[65%] px-3.5 py-2.5 bg-[#FF4E1A] text-white text-[13px] leading-relaxed"
-                                    style="border-radius: 14px 14px 4px 14px"
-                                >
-                                    {{ item.message.content }}
+                                <div v-if="item.message.role === 'USER'" class="flex flex-col items-end max-w-[65%]">
+                                    <div
+                                        class="px-3.5 py-2.5 bg-[#FF4E1A] text-white text-[13px] leading-relaxed break-words"
+                                        style="border-radius: 14px 14px 4px 14px"
+                                    >
+                                        {{ item.message.content }}
+                                    </div>
+                                    <div v-if="item.message.content" class="flex items-center gap-1.5 mt-1.5 pr-0.5">
+                                        <button
+                                            type="button"
+                                            @click="copyMessage(item.message)"
+                                            class="flex items-center gap-1 text-[10px] font-medium text-[#9E9A90] hover:text-[#5A564E] transition-colors duration-150 cursor-pointer bg-transparent border-none p-0.5"
+                                        >
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                            </svg>
+                                            {{ copiedMessageId === item.message.id ? 'Copied' : 'Copy' }}
+                                        </button>
+                                        <span class="text-[10px] text-[#B8B4AA]">{{ formatTime(item.message.createdAt) }}</span>
+                                    </div>
                                 </div>
 
-                                <div v-else class="max-w-[75%] w-full">
-                                    <div
-                                        v-if="!item.message.content && isStreaming && item.message === messages[messages.length - 1]"
-                                        class="inline-block w-2 h-4 bg-[#FF4E1A] rounded-sm animate-pulse"
-                                    ></div>
-                                    <div
-                                        v-else-if="item.message.content"
-                                        class="bg-white border border-[#E4E2DC] rounded-[10px] px-4 py-3.5 text-[13px] text-[#5A564E] leading-[1.65] ai-content"
-                                        v-html="renderMarkdown(item.message.content)"
-                                    ></div>
+                                <div v-else class="max-w-[75%] w-full flex items-start gap-2.5">
+                                    <div class="w-7 h-7 shrink-0 rounded-full bg-[#FF4E1A]/10 border border-[#FF4E1A]/25 flex items-center justify-center text-[#FF4E1A] mt-0.5">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div
+                                            v-if="!item.message.content && isStreaming && item.message === messages[messages.length - 1]"
+                                            class="inline-flex items-center gap-1.5 bg-white border border-[#E4E2DC] rounded-[12px] px-4 py-3.5"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#CECCBF] typing-dot"></span>
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#CECCBF] typing-dot"></span>
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#CECCBF] typing-dot"></span>
+                                        </div>
+                                        <div
+                                            v-else-if="item.message.content"
+                                            class="bg-white border border-[#E4E2DC] rounded-[12px] px-4 py-3.5 text-[13px] text-[#5A564E] leading-[1.65] ai-content shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                                            v-html="renderMarkdown(item.message.content)"
+                                        ></div>
+                                        <div v-if="item.message.content" class="flex items-center gap-1.5 mt-1.5 pl-0.5">
+                                            <button
+                                                type="button"
+                                                @click="copyMessage(item.message)"
+                                                class="flex items-center gap-1 text-[10px] font-medium text-[#9E9A90] hover:text-[#5A564E] transition-colors duration-150 cursor-pointer bg-transparent border-none p-0.5"
+                                            >
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                                </svg>
+                                                {{ copiedMessageId === item.message.id ? 'Copied' : 'Copy' }}
+                                            </button>
+                                            <span class="text-[10px] text-[#B8B4AA]">{{ formatTime(item.message.createdAt) }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -293,39 +420,165 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.ai-content :deep(p) { margin-bottom: 0.5rem; }
+.ai-content :deep(p) { margin-bottom: 0.75rem; line-height: 1.7; }
 .ai-content :deep(p:last-child) { margin-bottom: 0; }
-.ai-content :deep(ul), .ai-content :deep(ol) { margin: 0.5rem 0; padding-left: 1.25rem; }
-.ai-content :deep(li) { margin-bottom: 0.25rem; }
+.ai-content :deep(ul), .ai-content :deep(ol) { margin: 0.5rem 0 0.75rem; padding-left: 1.375rem; }
+.ai-content :deep(ul) { list-style: disc; }
+.ai-content :deep(ol) { list-style: decimal; }
+.ai-content :deep(li) { margin-bottom: 0.3rem; line-height: 1.65; }
+.ai-content :deep(li:last-child) { margin-bottom: 0; }
+.ai-content :deep(li > ul), .ai-content :deep(li > ol) { margin: 0.2rem 0 0.35rem; }
+.ai-content :deep(li::marker) { color: #FF4E1A; font-weight: 600; }
+.ai-content :deep(h1), .ai-content :deep(h2), .ai-content :deep(h3), .ai-content :deep(h4) {
+    font-weight: 700;
+    color: #1A1A16;
+    line-height: 1.3;
+    margin: 1.25rem 0 0.5rem;
+}
+.ai-content :deep(h1:first-child), .ai-content :deep(h2:first-child),
+.ai-content :deep(h3:first-child), .ai-content :deep(h4:first-child) { margin-top: 0; }
+.ai-content :deep(h1) { font-size: 1.2rem; }
+.ai-content :deep(h2) { font-size: 1.05rem; padding-bottom: 0.25rem; border-bottom: 1px solid #E4E2DC; }
+.ai-content :deep(h3) { font-size: 0.95rem; }
+.ai-content :deep(h4) { font-size: 0.875rem; }
+.ai-content :deep(strong) { font-weight: 600; color: #1A1A16; }
+.ai-content :deep(em) { font-style: italic; }
+.ai-content :deep(a) { color: #FF4E1A; text-decoration: underline; text-underline-offset: 2px; }
+.ai-content :deep(a:hover) { color: #E33F10; }
+.ai-content :deep(hr) { border: none; border-top: 1px solid #E4E2DC; margin: 1rem 0; }
+.ai-content :deep(blockquote) {
+    border-left: 3px solid #FF4E1A;
+    padding: 8px 12px;
+    background: #FBF4F0;
+    border-radius: 0 8px 8px 0;
+    color: #5A564E;
+    margin: 0.75rem 0;
+}
+.ai-content :deep(blockquote p:last-child) { margin-bottom: 0; }
+.ai-content :deep(input[type='checkbox']) {
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid #CECCBF;
+    border-radius: 3px;
+    vertical-align: -2px;
+    margin-right: 6px;
+    position: relative;
+    cursor: default;
+}
+.ai-content :deep(input[type='checkbox']:checked) {
+    background: #FF4E1A;
+    border-color: #FF4E1A;
+}
+.ai-content :deep(input[type='checkbox']:checked::after) {
+    content: '';
+    position: absolute;
+    left: 3.5px;
+    top: 0.5px;
+    width: 4px;
+    height: 7px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.ai-content :deep(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    font-size: 12.5px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.ai-content :deep(table:last-child) { margin-bottom: 0; }
+.ai-content :deep(th) {
+    background: #F2F1EE;
+    color: #1A1A16;
+    font-weight: 600;
+    text-align: left;
+    padding: 7px 10px;
+    border: 1px solid #E4E2DC;
+}
+.ai-content :deep(td) {
+    padding: 7px 10px;
+    border: 1px solid #E4E2DC;
+    vertical-align: top;
+}
+.ai-content :deep(tbody tr:nth-child(even)) { background: #FAF9F6; }
+
 .ai-content :deep(code) {
     background: #EAE9E5;
     padding: 0.125rem 0.375rem;
-    border-radius: 3px;
+    border-radius: 4px;
     font-family: 'DM Mono', monospace;
     font-size: 12px;
 }
-.ai-content :deep(pre) {
-    background: #EAE9E5;
-    padding: 0.75rem;
-    border-radius: 6px;
-    overflow-x: auto;
-    margin: 0.5rem 0;
+
+.ai-content :deep(.code-block) {
+    margin: 0.75rem 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #21262D;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-.ai-content :deep(pre code) { background: transparent; padding: 0; }
-.ai-content :deep(strong) { font-weight: 600; color: #1A1A16; }
-.ai-content :deep(em) { font-style: italic; }
-.ai-content :deep(h1), .ai-content :deep(h2), .ai-content :deep(h3) {
+.ai-content :deep(.code-block:first-child) { margin-top: 0; }
+.ai-content :deep(.code-block:last-child) { margin-bottom: 0; }
+.ai-content :deep(.code-block-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #161B22;
+    border-bottom: 1px solid #21262D;
+}
+.ai-content :deep(.code-lang) {
+    font-size: 10px;
     font-weight: 700;
-    color: #1A1A16;
-    margin-bottom: 0.5rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8B949E;
+    font-family: 'DM Mono', monospace;
 }
-.ai-content :deep(blockquote) {
-    border-left: 3px solid #CECCBF;
-    padding: 8px 12px;
-    background: #F2F1EE;
-    border-radius: 0 6px 6px 0;
-    font-style: italic;
-    color: #5A564E;
-    margin: 0.5rem 0;
+.ai-content :deep(.copy-code-btn) {
+    font-size: 10px;
+    font-weight: 600;
+    color: #8B949E;
+    background: transparent;
+    border: 1px solid #30363D;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.ai-content :deep(.copy-code-btn:hover) {
+    color: #E6EDF3;
+    border-color: #8B949E;
+    background: rgba(139, 148, 158, 0.1);
+}
+.ai-content :deep(.copy-code-btn.copied) { color: #3FB950; border-color: #3FB950; }
+.ai-content :deep(pre) {
+    margin: 0;
+    border-radius: 0;
+    background: #0D1117;
+    padding: 12px 14px;
+    overflow-x: auto;
+}
+.ai-content :deep(pre code) {
+    background: transparent;
+    padding: 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #C9D1D9;
+}
+
+.typing-dot {
+    animation: typing-bounce 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+    30% { transform: translateY(-3px); opacity: 1; }
 }
 </style>
