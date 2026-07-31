@@ -7,13 +7,48 @@ export interface ChatMessage {
     createdAt: string;
 }
 
+export interface Conversation {
+    id: string;
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+    messageCount: number;
+    lastMessage: string | null;
+    lastMessageAt: string | null;
+}
+
+export type StreamEvent =
+    | { type: 'metadata'; conversationId: string }
+    | { type: 'token'; content: string }
+    | { type: 'done' }
+    | { type: 'error'; message: string };
+
 export type StreamCallbacks = {
+    onMetadata?: (conversationId: string) => void;
     onToken: (token: string) => void;
     onDone: () => void;
     onError: (error: Error) => void;
 };
 
 export const chatApi = {
+    getConversations(page?: number, limit?: number): Promise<Conversation[]> {
+        const params = new URLSearchParams();
+        if (page) params.set('page', String(page));
+        if (limit) params.set('limit', String(limit));
+        const qs = params.toString();
+        return api.get<Conversation[]>(
+            `/chat/conversations${qs ? `?${qs}` : ''}`,
+        );
+    },
+
+    createConversation(): Promise<Conversation> {
+        return api.post<Conversation>('/chat/conversations');
+    },
+
+    deleteConversation(id: string): Promise<void> {
+        return api.del(`/chat/conversations/${id}`);
+    },
+
     getMessages(
         conversationId?: string,
         page?: number,
@@ -36,9 +71,9 @@ export const chatApi = {
 
     async sendMessageStream(
         message: string,
+        conversationId: string | null,
         callbacks: StreamCallbacks,
         signal?: AbortSignal,
-        conversationId?: string,
     ): Promise<void> {
         try {
             const response = await api.stream(
@@ -71,7 +106,9 @@ export const chatApi = {
                     } catch {
                         continue;
                     }
-                    if (parsed.type === 'token')
+                    if (parsed.type === 'metadata') {
+                        callbacks.onMetadata?.(parsed.conversationId as string);
+                    } else if (parsed.type === 'token')
                         callbacks.onToken(parsed.content as string);
                     else if (parsed.type === 'done') {
                         finished = true;

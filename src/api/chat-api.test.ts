@@ -53,9 +53,9 @@ describe('chatApi', () => {
             ];
             vi.mocked(api.get).mockResolvedValue(mockMessages);
 
-            const result = await chatApi.getMessages();
+            const result = await chatApi.getMessages('conv-1');
 
-            expect(api.get).toHaveBeenCalledWith('/chat/messages');
+            expect(api.get).toHaveBeenCalledWith('/chat/messages?conversationId=conv-1');
             expect(result).toEqual(mockMessages);
         });
     });
@@ -74,7 +74,7 @@ describe('chatApi', () => {
             const onDone = vi.fn();
             const onError = vi.fn();
 
-            await chatApi.sendMessageStream('Hi', {
+            await chatApi.sendMessageStream('Hi', null, {
                 onToken,
                 onDone,
                 onError,
@@ -97,7 +97,7 @@ describe('chatApi', () => {
             const onDone = vi.fn();
             const onError = vi.fn();
 
-            await chatApi.sendMessageStream('Hi', {
+            await chatApi.sendMessageStream('Hi', null, {
                 onToken,
                 onDone,
                 onError,
@@ -114,7 +114,7 @@ describe('chatApi', () => {
             const onDone = vi.fn();
             const onError = vi.fn();
 
-            await chatApi.sendMessageStream('Hi', {
+            await chatApi.sendMessageStream('Hi', null, {
                 onToken,
                 onDone,
                 onError,
@@ -137,7 +137,7 @@ describe('chatApi', () => {
             const onDone = vi.fn();
             const onError = vi.fn();
 
-            await chatApi.sendMessageStream('Hi', {
+            await chatApi.sendMessageStream('Hi', null, {
                 onToken,
                 onDone,
                 onError,
@@ -163,7 +163,7 @@ describe('chatApi', () => {
             const onDone = vi.fn();
             const onError = vi.fn();
 
-            await chatApi.sendMessageStream('Hi', {
+            await chatApi.sendMessageStream('Hi', null, {
                 onToken,
                 onDone,
                 onError,
@@ -182,7 +182,7 @@ describe('chatApi', () => {
             const onDone = vi.fn();
             const onError = vi.fn();
 
-            await chatApi.sendMessageStream('Hi', {
+            await chatApi.sendMessageStream('Hi', null, {
                 onToken,
                 onDone,
                 onError,
@@ -206,6 +206,7 @@ describe('chatApi', () => {
 
             await chatApi.sendMessageStream(
                 'Hi',
+                null,
                 { onToken, onDone, onError },
                 abortController.signal,
             );
