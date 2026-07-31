@@ -213,7 +213,12 @@ export function useChat() {
         );
         try {
             await chatApi.retractLastMessages(activeConversationId.value);
-        } catch {}
+        } catch (err) {
+            console.warn(
+                '[useChat] Retract last messages non-fatal error:',
+                err,
+            );
+        }
         try {
             const fetched = await chatApi.getMessages(
                 activeConversationId.value,
@@ -224,7 +229,9 @@ export function useChat() {
                 seen.add(m.id);
                 return true;
             });
-        } catch {}
+        } catch (err) {
+            console.warn('[useChat] Fetch messages non-fatal error:', err);
+        }
         await sendMessage(msg);
     }
 
