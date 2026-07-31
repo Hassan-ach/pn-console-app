@@ -14,8 +14,11 @@ export function useChat() {
     const sidebarOpen = ref(true);
     let abortController: AbortController | null = null;
 
-    const activeConversation = computed(() =>
-        conversations.value.find((c) => c.id === activeConversationId.value) ?? null,
+    const activeConversation = computed(
+        () =>
+            conversations.value.find(
+                (c) => c.id === activeConversationId.value,
+            ) ?? null,
     );
 
     onUnmounted(() => {
@@ -61,9 +64,7 @@ export function useChat() {
             scrollToBottom();
         } catch (err) {
             error.value =
-                err instanceof Error
-                    ? err.message
-                    : 'Failed to load history';
+                err instanceof Error ? err.message : 'Failed to load history';
             isLoading.value = false;
         }
     }
