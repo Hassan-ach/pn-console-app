@@ -247,6 +247,41 @@ export function useChat() {
         sidebarOpen.value = !sidebarOpen.value;
     }
 
+    function isFailedResponse(content: string): boolean {
+        return (
+            content.trim() ===
+            'Sorry, an error occurred while processing your request.'
+        );
+    }
+
+    async function retryFailedMessage(assistantMessageId: string) {
+        if (isStreaming.value) return;
+        const idx = messages.value.findIndex(
+            (m) => m.id === assistantMessageId,
+        );
+        if (idx === -1) return;
+        const failed = messages.value[idx];
+        if (failed.role !== 'ASSISTANT' || !isFailedResponse(failed.content)) {
+            return;
+        }
+
+        let userText = '';
+        for (let i = idx - 1; i >= 0; i--) {
+            if (messages.value[i].role === 'USER') {
+                userText = messages.value[i].content;
+                break;
+            }
+        }
+        if (!userText) return;
+
+        if (idx === messages.value.length - 1) {
+            lastUserMessage.value = userText;
+            await retry();
+        } else {
+            await sendMessage(userText);
+        }
+    }
+
     function scrollToTop() {
         const container = document.getElementById('chat-messages');
         if (container) {
@@ -289,6 +324,8 @@ export function useChat() {
         sendMessage,
         stopGenerating,
         retry,
+        isFailedResponse,
+        retryFailedMessage,
         switchConversation,
         startNewChat,
         deleteConversation,

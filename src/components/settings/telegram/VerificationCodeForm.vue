@@ -53,6 +53,19 @@ function onSubmit() {
   emit('submit', fullCode);
 }
 
+function onPaste(event: ClipboardEvent) {
+  event.preventDefault();
+  const digits = (event.clipboardData?.getData('text') ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 5);
+  if (!digits) return;
+  for (let i = 0; i < 5; i++) {
+    codeDigits.value[i] = digits[i] ?? '';
+  }
+  const nextIndex = Math.min(digits.length, 4);
+  inputs.value[nextIndex]?.focus();
+}
+
 function onDigitInput(index: number) {
   const digit = codeDigits.value[index];
   if (digit && index < 5) {
@@ -89,7 +102,7 @@ function setInputRef(el: HTMLInputElement | null, index: number) {
       Code sent to <strong>{{ props.phone }}</strong>
     </p>
 
-    <div class="flex gap-2 justify-center">
+    <div class="flex gap-2 justify-center" @paste="onPaste">
       <input
         v-for="(digit, i) in codeDigits"
         :key="i"
@@ -105,6 +118,10 @@ function setInputRef(el: HTMLInputElement | null, index: number) {
         class="w-11 h-12 text-center text-lg font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF8C4B]/40 focus:border-[#FF8C4B]"
       />
     </div>
+
+    <p class="text-sm text-gray-400 text-center">
+      You can paste the code from Telegram
+    </p>
 
     <p v-if="error" class="text-sm text-red-600 text-center">{{ error }}</p>
 
