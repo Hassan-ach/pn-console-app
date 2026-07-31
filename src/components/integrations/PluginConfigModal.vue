@@ -58,7 +58,6 @@ watch(
         schema.value = loadedSchema;
         requirements.value = loadedReqs;
 
-        // Merge initial chats if provided in props
         const chatsList = (loadedConfig as any)?.chats ?? props.chats ?? [];
         const formattedChats = chatsList.map((c: any) => ({
           id: c.id,
@@ -71,7 +70,6 @@ watch(
           chats: formattedChats,
         };
 
-        // Fallback schema if API returns empty schema
         if (schema.value.length === 0) {
           schema.value = [
             {

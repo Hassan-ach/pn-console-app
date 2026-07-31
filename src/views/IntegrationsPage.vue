@@ -27,7 +27,6 @@ const pageLoading = ref(true);
 const error = ref('');
 const success = ref('');
 
-// Modal states
 const showConfigModal = ref(false);
 const showAuthModal = ref(false);
 const showDeactivateDialog = ref(false);

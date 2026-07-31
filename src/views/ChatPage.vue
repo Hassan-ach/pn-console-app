@@ -171,7 +171,6 @@ function getDateKey(dateStr: string): string {
     return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-// Build message groups with date divider info
 interface MessageGroup {
     type: 'divider';
     label: string;

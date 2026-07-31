@@ -187,7 +187,6 @@ export function useChat() {
                     isStreaming.value = false;
                     input.value = '';
                     abortController = null;
-                    // Refresh conversation list to update titles
                     void chatApi.getConversations(1, 100).then((list) => {
                         conversations.value = list;
                     });
@@ -214,8 +213,11 @@ export function useChat() {
         );
         try {
             await chatApi.retractLastMessages(activeConversationId.value);
-        } catch {
-            // Best-effort cleanup of failed messages from DB
+        } catch (err) {
+            console.warn(
+                '[useChat] Retract last messages non-fatal error:',
+                err,
+            );
         }
         try {
             const fetched = await chatApi.getMessages(
@@ -227,8 +229,8 @@ export function useChat() {
                 seen.add(m.id);
                 return true;
             });
-        } catch {
-            // Keep local state if reload fails
+        } catch (err) {
+            console.warn('[useChat] Fetch messages non-fatal error:', err);
         }
         await sendMessage(msg);
     }
