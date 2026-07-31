@@ -89,39 +89,6 @@ function navigate(view: string) {
 
             <button
                 type="button"
-                @click="navigate('/jobs')"
-                :class="
-                    isActive('/jobs')
-                        ? 'bg-[#FF8C4B]/10 text-[#FF8C4B]'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                "
-                class="relative w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
-                :title="isCollapsed ? 'Jobs' : ''"
-            >
-                <svg
-                    class="w-5 h-5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 6h.01M16 12h.01"
-                    />
-                </svg>
-                <span v-if="!isCollapsed" class="whitespace-nowrap">Jobs</span>
-                <span
-                    v-if="isCollapsed"
-                    class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50"
-                >
-                    Jobs
-                </span>
-            </button>
-
-            <button
-                type="button"
                 @click="navigate('/insights')"
                 :class="
                     isActive('/insights')
