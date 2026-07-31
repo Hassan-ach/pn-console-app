@@ -33,9 +33,7 @@ function getUserName(): string {
     const payload = JSON.parse(atob(base64)) as Record<string, unknown>;
     if (typeof payload.email === "string") return payload.email.split("@")[0];
     if (typeof payload.sub === "string") return payload.sub;
-  } catch {
-    // ignore
-  }
+  } catch {}
   return "there";
 }
 

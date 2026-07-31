@@ -75,7 +75,6 @@ const contextSummaryList = computed(() => {
     if (firstWithContext?.metadata?.contextSummary) {
         return firstWithContext.metadata.contextSummary as string[];
     }
-    // Fallback context bullets from insight or descriptions
     return suggestions.value.map(
         (s: InsightSuggestion) => `${s.title}: ${s.description}`,
     );
@@ -105,7 +104,6 @@ async function loadData() {
             suggestions.value = suggestionList;
 
             if (suggestionList.length > 0) {
-                // Default select first or first pending/accepted
                 const active =
                     suggestionList.find((s: InsightSuggestion) => s.status === 'ACCEPTED') ||
                     suggestionList.find((s: InsightSuggestion) => s.status === 'PENDING') ||

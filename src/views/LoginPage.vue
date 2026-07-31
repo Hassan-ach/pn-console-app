@@ -101,9 +101,7 @@ async function openOauthWindow(url: string, name: string) {
   try {
     await import("@tauri-apps/api/event");
     isTauri = true;
-  } catch {
-    // Not in Tauri
-  }
+  } catch {}
 
   if (isTauri) {
     const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");

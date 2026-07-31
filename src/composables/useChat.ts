@@ -187,7 +187,6 @@ export function useChat() {
                     isStreaming.value = false;
                     input.value = '';
                     abortController = null;
-                    // Refresh conversation list to update titles
                     void chatApi.getConversations(1, 100).then((list) => {
                         conversations.value = list;
                     });
@@ -214,9 +213,7 @@ export function useChat() {
         );
         try {
             await chatApi.retractLastMessages(activeConversationId.value);
-        } catch {
-            // Best-effort cleanup of failed messages from DB
-        }
+        } catch {}
         try {
             const fetched = await chatApi.getMessages(
                 activeConversationId.value,
@@ -227,9 +224,7 @@ export function useChat() {
                 seen.add(m.id);
                 return true;
             });
-        } catch {
-            // Keep local state if reload fails
-        }
+        } catch {}
         await sendMessage(msg);
     }
 

@@ -75,9 +75,7 @@ function startPolling() {
         if (pollTimer) clearInterval(pollTimer);
         router.push({ name: 'reset-password', query: { token: res.token } });
       }
-    } catch {
-      // ignore polling errors, keep trying
-    }
+    } catch {}
   }, 2000);
 }
 </script>
