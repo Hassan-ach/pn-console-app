@@ -14,27 +14,36 @@ export type StreamCallbacks = {
 };
 
 export const chatApi = {
-    getMessages(page?: number, limit?: number): Promise<ChatMessage[]> {
+    getMessages(
+        conversationId?: string,
+        page?: number,
+        limit?: number,
+    ): Promise<ChatMessage[]> {
         const params = new URLSearchParams();
+        if (conversationId) params.set('conversationId', conversationId);
         if (page) params.set('page', String(page));
         if (limit) params.set('limit', String(limit));
         const qs = params.toString();
         return api.get<ChatMessage[]>(`/chat/messages${qs ? `?${qs}` : ''}`);
     },
 
-    retractLastMessages(): Promise<void> {
-        return api.del('/chat/messages/retract-last');
+    retractLastMessages(conversationId?: string): Promise<void> {
+        const params = new URLSearchParams();
+        if (conversationId) params.set('conversationId', conversationId);
+        const qs = params.toString();
+        return api.del(`/chat/messages/retract-last${qs ? `?${qs}` : ''}`);
     },
 
     async sendMessageStream(
         message: string,
         callbacks: StreamCallbacks,
         signal?: AbortSignal,
+        conversationId?: string,
     ): Promise<void> {
         try {
             const response = await api.stream(
                 '/chat/messages',
-                { message },
+                { message, conversationId },
                 signal,
             );
             const reader = response.body!.getReader();

@@ -71,25 +71,29 @@ export function useChat() {
         abortController = new AbortController();
         const signal = abortController.signal;
 
-        await chatApi.sendMessageStream(trimmed, {
-            onToken(token: string) {
-                assistantMessage.content += token;
-                if (isAtBottom.value) {
-                    void nextTick(() => scrollToBottom());
-                }
+        await chatApi.sendMessageStream(
+            trimmed,
+            {
+                onToken(token: string) {
+                    assistantMessage.content += token;
+                    if (isAtBottom.value) {
+                        void nextTick(() => scrollToBottom());
+                    }
+                },
+                onDone() {
+                    isStreaming.value = false;
+                    input.value = '';
+                    abortController = null;
+                },
+                onError(err: Error) {
+                    error.value = err.message;
+                    isStreaming.value = false;
+                    input.value = '';
+                    abortController = null;
+                },
             },
-            onDone() {
-                isStreaming.value = false;
-                input.value = '';
-                abortController = null;
-            },
-            onError(err: Error) {
-                error.value = err.message;
-                isStreaming.value = false;
-                input.value = '';
-                abortController = null;
-            },
-        }, signal);
+            signal,
+        );
     }
 
     async function retry() {

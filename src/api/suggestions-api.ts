@@ -10,10 +10,7 @@ export type SuggestionActionType =
     | 'DISMISS';
 
 export type SuggestionStatus =
-    | 'PENDING'
-    | 'ACCEPTED'
-    | 'DISMISSED'
-    | 'COMPLETED';
+    'PENDING' | 'ACCEPTED' | 'DISMISSED' | 'COMPLETED';
 
 export interface InsightSuggestion {
     id: string;
@@ -38,20 +35,33 @@ export interface InsightSuggestion {
 }
 
 export const suggestionsApi = {
-    getUserSuggestions: (status?: SuggestionStatus): Promise<InsightSuggestion[]> => {
+    getUserSuggestions: (
+        status?: SuggestionStatus,
+    ): Promise<InsightSuggestion[]> => {
         const query = status ? `?status=${status}` : '';
         return api.get<InsightSuggestion[]>(`/suggestions${query}`);
     },
 
-    getInsightSuggestions: (insightId: string): Promise<InsightSuggestion[]> => {
-        return api.get<InsightSuggestion[]>(`/suggestions/insight/${insightId}`);
+    getInsightSuggestions: (
+        insightId: string,
+    ): Promise<InsightSuggestion[]> => {
+        return api.get<InsightSuggestion[]>(
+            `/suggestions/insight/${insightId}`,
+        );
     },
 
     generateForInsight: (insightId: string): Promise<InsightSuggestion[]> => {
-        return api.post<InsightSuggestion[]>(`/suggestions/generate/${insightId}`);
+        return api.post<InsightSuggestion[]>(
+            `/suggestions/generate/${insightId}`,
+        );
     },
 
-    updateStatus: (id: string, status: SuggestionStatus): Promise<InsightSuggestion> => {
-        return api.patch<InsightSuggestion>(`/suggestions/${id}/status`, { status });
+    updateStatus: (
+        id: string,
+        status: SuggestionStatus,
+    ): Promise<InsightSuggestion> => {
+        return api.patch<InsightSuggestion>(`/suggestions/${id}/status`, {
+            status,
+        });
     },
 };
