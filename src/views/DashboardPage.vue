@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import AlertBanner from "../components/AlertBanner.vue";
+import { useUser } from "../composables/useUser";
 import {
   insightsApi,
   type InsightSummary,
@@ -10,6 +11,7 @@ import {
   getPriorityColor,
   STATUS_LABELS,
 } from "../api/insights-api";
+import TeamRoleAdminPanel from "../components/admin/TeamRoleAdminPanel.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -20,22 +22,13 @@ function dismissMessage() {
   successMessage.value = null;
   router.replace({ path: '/home', query: {} });
 }
-const userName = ref("there");
+
+const { profile, isAdmin } = useUser();
+
+const userName = computed(() => profile.value?.firstName ?? profile.value?.email.split('@')[0] ?? 'there');
 const insights = ref<InsightSummary[]>([]);
 const loading = ref(true);
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
-
-function getUserName(): string {
-  const token = sessionStorage.getItem("access_token");
-  if (!token) return "there";
-  try {
-    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    const payload = JSON.parse(atob(base64)) as Record<string, unknown>;
-    if (typeof payload.email === "string") return payload.email.split("@")[0];
-    if (typeof payload.sub === "string") return payload.sub;
-  } catch {}
-  return "there";
-}
 
 const TYPE_LABELS: Record<InsightType, string> = {
   TASK: "Task",
@@ -101,7 +94,6 @@ function goToSuggestions(e?: Event) {
 
 async function fetchData() {
   try {
-    userName.value = getUserName();
     const insightList = await insightsApi.list(undefined, undefined, 50).catch(() => [] as InsightSummary[]);
     insights.value = insightList;
   } finally {
@@ -110,6 +102,10 @@ async function fetchData() {
 }
 
 onMounted(() => {
+  if (isAdmin.value) {
+    loading.value = false;
+    return;
+  }
   fetchData();
   pollingInterval = setInterval(fetchData, 5000);
 });
@@ -122,7 +118,9 @@ onUnmounted(() => {
 <template>
   <AlertBanner v-if="successMessage" type="success" :message="successMessage" @dismiss="dismissMessage" />
   <div class="max-w-4xl mx-auto">
-    <div v-if="loading" class="flex items-center justify-center py-16">
+    <TeamRoleAdminPanel v-if="isAdmin" />
+
+    <div v-else-if="loading" class="flex items-center justify-center py-16">
       <div class="w-6 h-6 border-2 border-[#FF8C4B] border-t-transparent rounded-full animate-spin"></div>
     </div>
     <template v-else>

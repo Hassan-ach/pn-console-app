@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUser } from './composables/useUser';
 
 const router = useRouter();
 const signupKey = ref(0);
@@ -15,6 +16,7 @@ function onOauthMessage(event: MessageEvent) {
     if (event.origin !== window.location.origin) return;
     if (event.data?.type === 'oauth-success') {
         sessionStorage.setItem('access_token', event.data.token);
+        useUser().refresh();
         router.push('/home');
     }
 }
@@ -48,6 +50,7 @@ onMounted(async () => {
             // Not running in Tauri — fall through
         }
 
+        useUser().refresh();
         router.push('/home');
         return;
     }
@@ -60,6 +63,7 @@ onMounted(async () => {
             'oauth-result',
             (event) => {
                 sessionStorage.setItem('access_token', event.payload.token);
+                useUser().refresh();
                 router.push('/home');
             },
         );

@@ -2,6 +2,7 @@
 import { ref, reactive, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "../api/auth";
+import { useUser } from "../composables/useUser";
 import AlertBanner from "../components/AlertBanner.vue";
 
 const router = useRouter();
@@ -237,6 +238,7 @@ async function handleSignup() {
       password: password.value,
     });
     sessionStorage.setItem("access_token", res.access_token);
+    useUser().refresh();
     created.value = true;
     setTimeout(() => {
       router.push("/home");

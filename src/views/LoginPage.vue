@@ -2,6 +2,7 @@
 import { ref, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "../api/auth";
+import { useUser } from "../composables/useUser";
 import AlertBanner from "../components/AlertBanner.vue";
 
 const router = useRouter();
@@ -164,6 +165,7 @@ async function handleLogin() {
       password: password.value,
     });
     sessionStorage.setItem("access_token", res.access_token);
+    useUser().refresh();
     router.push("/home");
   } catch (e: any) {
     error.value = e.message ?? "Something went wrong. Please try again.";

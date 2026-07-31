@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useUser } from '../composables/useUser';
 
 const route = useRoute();
 const router = useRouter();
+const { isAdmin } = useUser();
 const isCollapsed = ref(localStorage.getItem('sidebar-collapsed') === 'true');
 
 function toggleCollapse() {
@@ -88,6 +90,7 @@ function navigate(view: string) {
             </button>
 
             <button
+                v-if="!isAdmin"
                 type="button"
                 @click="navigate('/insights')"
                 :class="
@@ -123,6 +126,7 @@ function navigate(view: string) {
             </button>
 
             <button
+                v-if="!isAdmin"
                 type="button"
                 @click="navigate('/chat')"
                 :class="
