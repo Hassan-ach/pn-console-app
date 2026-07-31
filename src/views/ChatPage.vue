@@ -122,6 +122,8 @@ function formatTime(dateStr: string): string {
     });
 }
 
+const messageInputRef = ref<HTMLInputElement | null>(null);
+
 function handleSend() {
     if (!input.value.trim() || isStreaming.value) return;
     sendMessage(input.value);
@@ -129,7 +131,8 @@ function handleSend() {
 
 function sendQuickAction(prompt: string) {
     if (isStreaming.value) return;
-    sendMessage(prompt);
+    input.value = prompt;
+    messageInputRef.value?.focus();
 }
 
 function formatDateLabel(dateStr: string): string {
@@ -389,6 +392,7 @@ onMounted(() => {
                         </svg>
                     </div>
                     <input
+                        ref="messageInputRef"
                         v-model="input"
                         @keyup.enter="handleSend"
                         type="text"
