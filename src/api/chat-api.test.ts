@@ -55,7 +55,9 @@ describe('chatApi', () => {
 
             const result = await chatApi.getMessages('conv-1');
 
-            expect(api.get).toHaveBeenCalledWith('/chat/messages?conversationId=conv-1');
+            expect(api.get).toHaveBeenCalledWith(
+                '/chat/messages?conversationId=conv-1',
+            );
             expect(result).toEqual(mockMessages);
         });
     });

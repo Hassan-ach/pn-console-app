@@ -50,20 +50,23 @@ export const chatApi = {
     },
 
     getMessages(
-        conversationId: string,
+        conversationId?: string,
         page?: number,
         limit?: number,
     ): Promise<ChatMessage[]> {
-        const params = new URLSearchParams({ conversationId });
+        const params = new URLSearchParams();
+        if (conversationId) params.set('conversationId', conversationId);
         if (page) params.set('page', String(page));
         if (limit) params.set('limit', String(limit));
-        return api.get<ChatMessage[]>(`/chat/messages?${params.toString()}`);
+        const qs = params.toString();
+        return api.get<ChatMessage[]>(`/chat/messages${qs ? `?${qs}` : ''}`);
     },
 
-    retractLastMessages(conversationId: string): Promise<void> {
-        return api.del(
-            `/chat/messages/retract-last?conversationId=${conversationId}`,
-        );
+    retractLastMessages(conversationId?: string): Promise<void> {
+        const params = new URLSearchParams();
+        if (conversationId) params.set('conversationId', conversationId);
+        const qs = params.toString();
+        return api.del(`/chat/messages/retract-last${qs ? `?${qs}` : ''}`);
     },
 
     async sendMessageStream(
