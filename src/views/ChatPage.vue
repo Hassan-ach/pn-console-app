@@ -5,7 +5,9 @@ import DOMPurify from 'dompurify';
 import hljs from 'highlight.js/lib/common';
 import 'highlight.js/styles/github-dark.css';
 import { useChat } from '../composables/useChat';
+import { useExternalLinks } from '../composables/useExternalLinks';
 import ConversationSidebar from '../components/ConversationSidebar.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 import type { ChatMessage } from '../api/chat-api';
 
 const {
@@ -22,6 +24,8 @@ const {
     sendMessage,
     stopGenerating,
     retry,
+    isFailedResponse,
+    retryFailedMessage,
     switchConversation,
     startNewChat,
     deleteConversation,
@@ -29,6 +33,9 @@ const {
     scrollToBottom,
     handleScroll,
 } = useChat();
+
+const { pendingLink, handleLinkClick, confirmOpen, cancel } =
+    useExternalLinks();
 
 marked.setOptions({
     breaks: true,
@@ -97,6 +104,15 @@ async function handleCodeCopy(event: MouseEvent) {
         button.textContent = label;
         button.classList.remove('copied');
     }, 1600);
+}
+
+function handleChatClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (target.closest('.copy-code-btn')) {
+        handleCodeCopy(event);
+        return;
+    }
+    handleLinkClick(event);
 }
 
 const copiedMessageId = ref<string | null>(null);
@@ -246,7 +262,7 @@ onMounted(() => {
                 <div
                     id="chat-messages"
                     @scroll="handleScroll"
-                    @click="handleCodeCopy"
+                    @click="handleChatClick"
                     class="absolute inset-0 overflow-y-auto px-5 py-5 flex flex-col gap-3.5 scroll-smooth [scrollbar-width:thin] [scrollbar-color:#CECCBF_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#CECCBF] [&::-webkit-scrollbar-thumb]:rounded"
                 >
                     <!-- Loading -->
@@ -330,6 +346,22 @@ onMounted(() => {
                                                 {{ copiedMessageId === item.message.id ? 'Copied' : 'Copy' }}
                                             </button>
                                             <span class="text-[10px] text-[#B8B4AA]">{{ formatTime(item.message.createdAt) }}</span>
+                                        </div>
+                                        <div
+                                            v-if="isFailedResponse(item.message.content)"
+                                            class="flex items-center gap-1.5 mt-1 pl-0.5"
+                                        >
+                                            <button
+                                                type="button"
+                                                @click="retryFailedMessage(item.message.id)"
+                                                class="flex items-center gap-1 text-[10px] font-medium text-[#FF4E1A] hover:text-[#E33F10] transition-colors duration-150 cursor-pointer bg-transparent border-none p-0.5"
+                                            >
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="23 4 23 10 17 10"/>
+                                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                                                </svg>
+                                                Retry
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -420,6 +452,20 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+
+        <ConfirmDialog
+            :open="pendingLink !== null"
+            title="Open external link?"
+            :message="
+                pendingLink
+                    ? `This will open ${pendingLink} in your default browser. Do you want to continue?`
+                    : ''
+            "
+            confirmLabel="Open link"
+            cancelLabel="Cancel"
+            @confirm="confirmOpen"
+            @cancel="cancel"
+        />
     </div>
 </template>
 

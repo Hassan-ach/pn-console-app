@@ -98,7 +98,10 @@ onUnmounted(() => {
         {{ title }}
       </h2>
 
-      <p class="text-sm leading-relaxed mb-8" style="color: #8a7f75">
+      <p
+        class="text-sm leading-relaxed mb-8 break-words"
+        style="color: #8a7f75"
+      >
         {{ message }}
       </p>
 
