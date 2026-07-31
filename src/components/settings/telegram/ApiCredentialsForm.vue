@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useExternalLinks } from '../../../composables/useExternalLinks';
+import ConfirmDialog from '../../ConfirmDialog.vue';
 
 defineProps<{
   busy?: boolean;
@@ -8,6 +10,8 @@ defineProps<{
 const emit = defineEmits<{
   submit: [apiId: number, apiHash: string, phone: string];
 }>();
+
+const { pendingLink, handleLinkClick, confirmOpen, cancel } = useExternalLinks();
 
 const apiId = ref('');
 const apiHash = ref('');
@@ -55,7 +59,8 @@ async function onSubmit() {
       <a
         href="https://my.telegram.org/apps"
         target="_blank"
-        class="text-[#FF8C4B] underline hover:no-underline"
+        @click="handleLinkClick"
+        class="text-[#FF8C4B] underline hover:no-underline cursor-pointer"
       >apiId and apiHash from my.telegram.org</a>
     </p>
 
@@ -99,5 +104,19 @@ async function onSubmit() {
     >
       {{ busy ? 'Sending code...' : 'Send Code' }}
     </button>
+
+    <ConfirmDialog
+      :open="pendingLink !== null"
+      title="Open external link?"
+      :message="
+        pendingLink
+          ? `This will open ${pendingLink} in your default browser. Do you want to continue?`
+          : ''
+      "
+      confirmLabel="Open link"
+      cancelLabel="Cancel"
+      @confirm="confirmOpen"
+      @cancel="cancel"
+    />
   </div>
 </template>
