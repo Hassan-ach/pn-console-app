@@ -7,34 +7,75 @@ export interface ChatMessage {
     createdAt: string;
 }
 
+export interface Conversation {
+    id: string;
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+    messageCount: number;
+    lastMessage: string | null;
+    lastMessageAt: string | null;
+}
+
+export type StreamEvent =
+    | { type: 'metadata'; conversationId: string }
+    | { type: 'token'; content: string }
+    | { type: 'done' }
+    | { type: 'error'; message: string };
+
 export type StreamCallbacks = {
+    onMetadata?: (conversationId: string) => void;
     onToken: (token: string) => void;
     onDone: () => void;
     onError: (error: Error) => void;
 };
 
 export const chatApi = {
-    getMessages(page?: number, limit?: number): Promise<ChatMessage[]> {
+    getConversations(page?: number, limit?: number): Promise<Conversation[]> {
         const params = new URLSearchParams();
         if (page) params.set('page', String(page));
         if (limit) params.set('limit', String(limit));
         const qs = params.toString();
-        return api.get<ChatMessage[]>(`/chat/messages${qs ? `?${qs}` : ''}`);
+        return api.get<Conversation[]>(
+            `/chat/conversations${qs ? `?${qs}` : ''}`,
+        );
     },
 
-    retractLastMessages(): Promise<void> {
-        return api.del('/chat/messages/retract-last');
+    createConversation(): Promise<Conversation> {
+        return api.post<Conversation>('/chat/conversations');
+    },
+
+    deleteConversation(id: string): Promise<void> {
+        return api.del(`/chat/conversations/${id}`);
+    },
+
+    getMessages(
+        conversationId: string,
+        page?: number,
+        limit?: number,
+    ): Promise<ChatMessage[]> {
+        const params = new URLSearchParams({ conversationId });
+        if (page) params.set('page', String(page));
+        if (limit) params.set('limit', String(limit));
+        return api.get<ChatMessage[]>(`/chat/messages?${params.toString()}`);
+    },
+
+    retractLastMessages(conversationId: string): Promise<void> {
+        return api.del(
+            `/chat/messages/retract-last?conversationId=${conversationId}`,
+        );
     },
 
     async sendMessageStream(
         message: string,
+        conversationId: string | null,
         callbacks: StreamCallbacks,
         signal?: AbortSignal,
     ): Promise<void> {
         try {
             const response = await api.stream(
                 '/chat/messages',
-                { message },
+                { message, conversationId },
                 signal,
             );
             const reader = response.body!.getReader();
@@ -62,7 +103,9 @@ export const chatApi = {
                     } catch {
                         continue;
                     }
-                    if (parsed.type === 'token')
+                    if (parsed.type === 'metadata') {
+                        callbacks.onMetadata?.(parsed.conversationId as string);
+                    } else if (parsed.type === 'token')
                         callbacks.onToken(parsed.content as string);
                     else if (parsed.type === 'done') {
                         finished = true;

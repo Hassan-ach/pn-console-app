@@ -48,7 +48,8 @@ async function request<T>(
         }
         throw new Error(errorMessage);
     }
-    return (await res.json()) as T;
+    const text = await res.text();
+    return text ? (JSON.parse(text) as T) : (undefined as T);
 }
 
 async function requestStream(
